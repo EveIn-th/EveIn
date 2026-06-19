@@ -1,4 +1,4 @@
-export type Role = 'Brand' | 'Influencer';
+export type Role = 'Brand' | 'Influencer' | 'Admin';
 
 export interface User {
   id: string;
@@ -9,6 +9,7 @@ export interface User {
   age: number;
   email: string;
   phone: string;
+  password?: string;
   bio?: string;
   avatar?: string;
   lineId?: string;

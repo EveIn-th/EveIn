@@ -89,7 +89,7 @@ export default function Header({
           </div>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex space-x-6">
+          <nav className="hidden md:flex space-x-6 items-center">
             {navItems.map((item) => (
               <button
                 key={item.id}
@@ -110,69 +110,26 @@ export default function Header({
                 {item.label}
               </button>
             ))}
+            
+            {/* Website Manager Portal button - strictly limited to Admin role users */}
+            {currentUser?.role === 'Admin' && (
+              <button
+                id="admin-backend-portal-btn"
+                onClick={() => setActiveTab('adminBackend')}
+                className={`flex items-center gap-1.5 px-4.5 py-2 text-xs font-bold uppercase tracking-wider rounded-full border transition-all cursor-pointer ${
+                  activeTab === 'adminBackend'
+                    ? 'bg-[#D4AF37] text-neutral-950 border-[#D4AF37] shadow-lg shadow-gold-500/20'
+                    : 'bg-neutral-950 text-[#D4AF37] border-gold-400 hover:bg-neutral-900'
+                }`}
+              >
+                <Shield className="w-3.5 h-3.5 animate-pulse" />
+                <span>ตัวจัดการเว็บไซต์</span>
+              </button>
+            )}
           </nav>
 
           {/* Right Accessories */}
           <div className="flex items-center gap-3">
-            
-            {/* Quick Demo Swapper Helper (To let testers switch roles seamlessly) */}
-            <div className="relative">
-              <button
-                onClick={() => setShowDemoUserSwitcher(!showDemoUserSwitcher)}
-                className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium uppercase tracking-wider rounded-full bg-gold-50 text-gold-700 border border-gold-200/60 hover:bg-gold-100 transition-all cursor-pointer"
-              >
-                <Award className="w-3.5 h-3.5" />
-                <span>จำลองบทบาท</span>
-                <ChevronDown className="w-3 h-3" />
-              </button>
-              
-              {showDemoUserSwitcher && (
-                <div className="absolute right-0 mt-2 w-72 bg-white rounded-xl shadow-2xl border border-gold-100 py-3 z-50">
-                  <div className="px-4 py-2 border-b border-neutral-100 text-xs text-neutral-400 font-semibold tracking-wider uppercase">
-                    เลือกเปลี่ยนบัญชีเพื่อทดสอบระบบ (ตามโจทย์)
-                  </div>
-                  <div className="p-1 space-y-1">
-                    <button
-                      onClick={() => selectUserRole('b1')}
-                      className="w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-gold-50/50 rounded-lg transition-all"
-                    >
-                      <span className="w-2 h-2 rounded-full bg-gold-500"></span>
-                      <div>
-                        <div className="text-xs font-bold text-neutral-800">Aurum Luxury Spa (Brand)</div>
-                        <div className="text-[10px] text-neutral-500">จำกัดสิทธิ์โพสต์งานรีวิว / อนุมัติงาน / ชำระเงิน</div>
-                      </div>
-                    </button>
-                    <button
-                      onClick={() => selectUserRole('u1')}
-                      className="w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-gold-50/50 rounded-lg transition-all"
-                    >
-                      <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                      <div>
-                        <div className="text-xs font-bold text-neutral-800">Chanya_Luxe (Influencer)</div>
-                        <div className="text-[10px] text-neutral-500">ส่งคำเข้าร่วม / ส่งลิงก์งาน / ดูการชำระเงิน</div>
-                      </div>
-                    </button>
-                    <button
-                      onClick={() => selectUserRole('u3')}
-                      className="w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-gold-50/50 rounded-lg transition-all"
-                    >
-                      <span className="w-2 h-2 rounded-full bg-indigo-500"></span>
-                      <div>
-                        <div className="text-xs font-bold text-neutral-800">Zephyr_Gamer (LGBTQ Influencer)</div>
-                        <div className="text-[10px] text-neutral-500">เทคโนโลยี / เกม / 890K ผู้ติดตาม</div>
-                      </div>
-                    </button>
-                    <button
-                      onClick={() => selectUserRole(null)}
-                      className="w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-red-50 text-red-600 rounded-lg transition-all"
-                    >
-                      <span className="w-2 h-2 rounded-full bg-red-500"></span>
-                      <div className="text-xs font-bold">ออกจากระบบ (Guest Mode)</div>
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
 
             {currentUser && (
               <>
@@ -299,7 +256,9 @@ export default function Header({
                       <p className="text-[11px] font-bold text-gray-800 leading-tight">
                         {currentUser.brandName ? currentUser.brandName.substring(0, 18) : currentUser.username}
                       </p>
-                      <p className="text-[9px] text-gray-400 leading-none">{currentUser.role === 'Brand' ? 'Premium Brand' : 'Creator'}</p>
+                      <p className="text-[9px] text-gray-400 leading-none">
+                        {currentUser.role === 'Admin' ? 'Super Administrator' : currentUser.role === 'Brand' ? 'Premium Brand' : 'Creator'}
+                      </p>
                     </div>
                     <ChevronDown className="w-3.5 h-3.5 text-neutral-500 hidden sm:block" />
                   </button>
@@ -307,12 +266,23 @@ export default function Header({
                   {showUserDropdown && (
                     <div className="absolute right-0 mt-3 w-56 bg-white rounded-xl shadow-2xl border border-gold-100 py-2 z-50">
                       <div className="px-4 py-2 border-b border-neutral-100">
-                        <div className="text-xs text-neutral-400 uppercase tracking-widest font-semibold">{currentUser.role === 'Brand' ? 'แบรนด์ผู้ว่าจ้าง' : 'อินฟลูเอนเซอร์'}</div>
+                        <div className="text-xs text-neutral-400 uppercase tracking-widest font-semibold">
+                          {currentUser.role === 'Admin' ? 'ผู้ดูแลระบบหลักสูงสุด' : currentUser.role === 'Brand' ? 'แบรนด์ผู้ว่าจ้าง' : 'อินฟลูเอนเซอร์'}
+                        </div>
                         <div className="font-bold text-neutral-950 truncate max-w-full">
                           {currentUser.brandName || currentUser.realName || currentUser.username}
                         </div>
                       </div>
                       <div className="p-1">
+                        {currentUser.role === 'Admin' && (
+                          <button
+                            onClick={() => { setActiveTab('adminBackend'); setShowUserDropdown(false); }}
+                            className="w-full flex items-center gap-2 px-3 py-2 text-xs text-neutral-900 bg-gold-50/50 hover:bg-gold-50 font-bold rounded-lg text-left border-b border-gold-100/50 mb-1"
+                          >
+                            <Shield className="w-4 h-4 text-gold-600 shrink-0 animate-pulse" />
+                            <span>ตัวจัดการเว็บไซต์</span>
+                          </button>
+                        )}
                         <button
                           onClick={() => { setActiveTab('profile'); setShowUserDropdown(false); }}
                           className="w-full flex items-center gap-2 px-3 py-2 text-xs text-neutral-700 hover:bg-gold-50/50 rounded-lg text-left"
@@ -375,12 +345,6 @@ export default function Header({
         <div className="md:hidden bg-white border-b border-gold-100 p-4 space-y-2 relative z-50">
           <div className="flex items-center justify-between pb-3 mb-2 border-b border-neutral-100">
             <span className="text-[10px] uppercase text-neutral-400 tracking-wider font-semibold">เมนูแพลตฟอร์ม</span>
-            <button
-              onClick={() => setShowDemoUserSwitcher(!showDemoUserSwitcher)}
-              className="px-2.5 py-1 text-[10px] font-medium rounded-full bg-gold-100 text-gold-700"
-            >
-              สลับบทบาทจำลอง
-            </button>
           </div>
           
           {navItems.map((item) => (
@@ -403,6 +367,27 @@ export default function Header({
               {item.label}
             </button>
           ))}
+          
+          {/* Mobile Admin Backend portal button: STRICTLY EXPOSED ONLY to logged-in Super Administrators */}
+          {currentUser?.role === 'Admin' && (
+            <button
+              onClick={() => {
+                setActiveTab('adminBackend');
+                setMobileMenuOpen(false);
+              }}
+              className={`w-full flex items-center justify-between px-4 py-3 rounded-lg text-sm font-bold tracking-wide transition-all border ${
+                activeTab === 'adminBackend'
+                  ? 'bg-gold-500 text-neutral-950 border-gold-500'
+                  : 'bg-neutral-950 text-[#D4AF37] border-gold-400 hover:bg-neutral-900'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <Shield className="w-4 h-4 shrink-0" />
+                <span>ตัวจัดการเว็บไซต์</span>
+              </div>
+              <Sparkles className="w-4 h-4 text-[#D4AF37] animate-pulse" />
+            </button>
+          )}
           
           {!currentUser && (
             <div className="grid grid-cols-2 gap-2 pt-3 border-t border-neutral-100">

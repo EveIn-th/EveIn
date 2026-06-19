@@ -58,36 +58,24 @@ export default function AuthView({
     }
 
     if (foundUser) {
+      if (foundUser.email.toLowerCase() === 'adminpoei@evein.com') {
+        if (loginPassword !== 'Poei2411982A') {
+          setFormError('รหัสผ่านผู้ดูแลระบบสูงสุดไม่ถูกต้อง การอนุญาตถูกปฏิเสธค่ะ');
+          return;
+        }
+      } else if (foundUser.password && foundUser.password !== loginPassword) {
+        setFormError('รหัสผ่านไม่ถูกต้องสำหรับบัญชีผู้ใช้นี้ กรุณาลองใหม่อีกครั้งค่ะ');
+        return;
+      }
       onAuthSuccess(foundUser);
       triggerToast(`ยินดีต้อนรับกลับเข้าสู่ระบบค่ะ คุณ ${foundUser.brandName || foundUser.username}!`, 'success');
       onClose();
     } else {
-      // Allow fallback login just for fluid testing (so they can type anything, and we log them in!)
-      // But let's first check if there's an exact match. If they match dummy, great! If not, let's create a beautiful temporary user profile to make testing ultra-smooth!
-      const tempUser: User = {
-        id: `temp_${Date.now()}`,
-        username: loginMethod === 'email' ? loginEmail.split('@')[0] : `user_${loginPhone}`,
-        realName: loginMethod === 'email' ? loginEmail : `Phone User ${loginPhone}`,
-        role: regRole, // fallback role chosen
-        gender: 'LGBTQ',
-        age: 26,
-        email: loginMethod === 'email' ? loginEmail : 'tester@evein-luxe.com',
-        phone: loginMethod === 'phone' ? loginPhone : '0811119999',
-        bio: 'พาร์ทเนอร์กิตติมศักดิ์ผู้เข้าร่วมการทดลองแอป EveIn',
-        avatar: regRole === 'Brand' 
-          ? 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?q=80&w=250&auto=format&fit=crop'
-          : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=250&auto=format&fit=crop',
-        brandName: regRole === 'Brand' ? 'Gold Lifestyle Co.' : undefined,
-        productCategories: regRole === 'Brand' ? ['ไลฟ์สไตล์', 'สกินแคร์'] : undefined,
-        workCategories: regRole === 'Influencer' ? ['เครื่องสำอาง', 'ไลฟ์สไตล์'] : undefined,
-        bankName: 'ธนาคารกสิกรไทย (KBank)',
-        bankAccount: '055-2-45210-9'
-      };
-      
-      allUsersSet(prev => [...prev, tempUser]);
-      onAuthSuccess(tempUser);
-      triggerToast('เข้าใช้งานทดลองสำเร็จแล้วค่ะ! ยินดีต้อนรับพาร์ทเนอร์ทางพิเศษ', 'success');
-      onClose();
+      if (loginMethod === 'email') {
+        setFormError('ไม่พบบัญชีผู้ใช้งานที่มีอีเมลนี้ในระบบค่ะ กรุณาสมัครสมาชิกก่อนเข้าใช้งาน หรือตรวจสอบความถูกต้องสะกดคำค่ะ');
+      } else {
+        setFormError('ไม่พบบัญชีผู้ใช้งานที่มีเบอร์โทรศัพท์นี้ในระบบค่ะ กรุณาสมัครสมาชิกก่อนเข้าใช้งาน หรือตรวจสอบความถูกต้องค่ะ');
+      }
     }
   };
 
@@ -111,6 +99,12 @@ export default function AuthView({
       return;
     }
 
+    const targetEmail = regEmail.trim().toLowerCase();
+    if (targetEmail === 'adminpoei@evein.com' || allUsers.some(u => u.email.toLowerCase() === targetEmail)) {
+      setFormError('ขออภัยค่ะ อีเมลนี้ได้ลงทะเบียนระบบไปแล้ว กรุณาไปที่หน้าเข้าสู่ระบบนะคะ');
+      return;
+    }
+
     const newUser: User = {
       id: `u_${Date.now()}`,
       username: regUsername.replace(/\s+/g, '_'),
@@ -120,6 +114,7 @@ export default function AuthView({
       age: Number(regAge),
       email: regEmail,
       phone: regPhone,
+      password: regPassword,
       bio: regRole === 'Brand' 
         ? 'แบรนด์ผู้สร้างสรรค์สินค้าเกรดพรีเมียม สมาชิกอย่างเป็นทางการของ EveIn'
         : 'ครีเอเตอร์/อินฟลูเอนเซอร์อิสระ ผู้ผ่านการลงทะเบียนแบบปลอดภัย',
@@ -359,11 +354,11 @@ export default function AuthView({
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="block text-xs font-bold text-neutral-700">อายุของครีเอเตอร์</label>
+                  <label className="block text-xs font-bold text-neutral-700">อายุของครีเอเตอร์ (18 - 60 ปี)</label>
                   <input
                     type="number"
-                    min={15}
-                    max={80}
+                    min={18}
+                    max={60}
                     value={regAge}
                     onChange={e => setRegAge(Number(e.target.value))}
                     className="w-full px-3 py-1.5 border rounded text-xs outline-none"

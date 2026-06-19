@@ -199,7 +199,8 @@ export default function MyJobsDashboard({
           if (app.id === paymentApp.id) {
             return {
               ...app,
-              paymentStatus: 'Verifying', // verifying slide
+              status: 'Completed',
+              paymentStatus: 'Paid',
               taxInvoiceRequested: wantTaxInvoice,
               paymentSlipUrl: slipPreview || slipFile || 'slip_signature_receipt4050.png',
               paymentSlipUploadedAt: new Date().toISOString()
@@ -210,40 +211,17 @@ export default function MyJobsDashboard({
       );
 
       triggerSystemNotification(
-        'แบรนด์อัปสลิปชำระเงินงานสำเร็จ',
-        `ยอดชำระของชื่องาน "${paymentApp.jobTitle}" ได้แนบเข้าสู่ระบบแล้ว แอดมินกำลังตรวจโอนเงินสดให้อินฟลูฯ ค่ะ`
+        'การชำระเงินแคมเปญเสร็จสมบูรณ์',
+        `แบรนด์ได้ชำระเงินและอัปสลิปแคมเปญ "${paymentApp.jobTitle}" เรียบร้อย ผลตอบแทนได้รับการโอนเข้าสู่กระเป๋าเงินของคุณ`
       );
 
-      triggerToast('ส่งข้อมูลโอนเงินเรียบร้อยแล้วค่ะ! แอดมินกำลังประมวลยอดเพื่อดรอปเงินโอนเข้าบัญชีครีเอเตอร์', 'success');
+      triggerToast('ชำระเงินเสร็จสิ้นและปรับสถานะแคมเปญเป็นเสร็จสมบูรณ์ (Completed) เรียบร้อยค่ะ!', 'success');
       setSubmittingSlip(false);
       setPaymentApp(null);
       setWantTaxInvoice(false);
       setSlipFile('');
       setSlipPreview('');
     }, 1000);
-  };
-
-  const handleAdminApprovePaymentInstant = (appId: string) => {
-    setApplications(prev =>
-      prev.map(app => {
-        if (app.id === appId) {
-          return {
-            ...app,
-            status: 'Completed',
-            paymentStatus: 'Paid'
-          };
-        }
-        return app;
-      })
-    );
-    const app = applications.find(x => x.id === appId);
-    if (app) {
-      triggerSystemNotification(
-        'ได้รับเงินรางวัลเรียบร้อย!',
-        `แอดมินอนุมัติสลิปโอนเงินเสร็จสิ้น ยอดเงินสุทธิพร้อมภาษีหัก ณ ที่จ่าย สำหรับ "${app.jobTitle}" เข้าบัญชีทางการของท่านแล้วค่ะ`
-      );
-    }
-    triggerToast('[แอดมินจำลอง] อนุมัติสลิปเรียบร้อยสถานะแคมเปญสลับเป็น Completed สมบูรณ์!', 'success');
   };
 
   const handleBrandEditJobSave = (e: React.FormEvent) => {
@@ -688,16 +666,6 @@ export default function MyJobsDashboard({
                       {/* Payment Slip and action triggers */}
                       <div className="pt-2 flex gap-2 justify-end items-center">
                         
-                        {/* Simulated Admin Approver bypass widget */}
-                        {app.paymentStatus === 'Verifying' && (
-                          <button
-                            onClick={() => handleAdminApprovePaymentInstant(app.id)}
-                            className="mr-auto px-2.5 py-1 text-[10px] uppercase tracking-wider rounded bg-gold-400 text-neutral-950 font-bold hover:bg-gold-500"
-                            title="แอดมินหลังบ้านตกลงอนุมัติยอดเพื่อจำลอง"
-                          >
-                            [Admin] อนุมัติสลิปโอน
-                          </button>
-                        )}
 
                         <button
                           onClick={() => { setChatWithUser(app.influencerId); setChatOpen(true); }}

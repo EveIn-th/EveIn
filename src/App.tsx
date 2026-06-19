@@ -12,6 +12,7 @@ import MyJobsDashboard from './components/MyJobsDashboard';
 import AuthView from './components/AuthView';
 import ProfileView from './components/ProfileView';
 import ChatMessengerWidget from './components/ChatMessengerWidget';
+import AdminBackendView from './components/AdminBackendView';
 import { Sparkles, ShieldCheck, X, AlertCircle } from 'lucide-react';
 
 export default function App() {
@@ -19,13 +20,92 @@ export default function App() {
   // Tab Routing ('home', 'events', 'reviewJobs', 'findInfluencers', 'dashboard', 'profile')
   const [activeTab, setActiveTab] = useState<string>('home');
 
-  // Unified global data stores
-  const [allUsers, setAllUsers] = useState<User[]>(MOCK_USERS);
-  const [currentUser, setCurrentUser] = useState<User | null>(MOCK_USERS[0]); // default logged in as Aurum_Spa (Brand) to start fully populated
+  // Unified global data stores with local storage sync for actual real world persistence
+  const [allUsers, setAllUsers] = useState<User[]>(() => {
+    const saved = localStorage.getItem('evein_users');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        const hasAdmin = parsed.some((u: User) => u.email.toLowerCase() === 'adminpoei@evein.com');
+        if (!hasAdmin) {
+          return [...MOCK_USERS, ...parsed.filter((p: User) => p.email.toLowerCase() !== 'adminpoei@evein.com')];
+        }
+        return parsed;
+      } catch (e) {
+        return MOCK_USERS;
+      }
+    }
+    return MOCK_USERS;
+  });
+
+  const [currentUser, setCurrentUser] = useState<User | null>(() => {
+    const saved = localStorage.getItem('evein_current_user');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        return null;
+      }
+    }
+    return null;
+  });
   
-  const [events, setEvents] = useState<EventItem[]>(INITIAL_EVENTS);
-  const [jobs, setJobs] = useState<JobItem[]>(INITIAL_JOBS);
-  const [applications, setApplications] = useState<JobApplication[]>(INITIAL_APPLICATIONS);
+  const [events, setEvents] = useState<EventItem[]>(() => {
+    const saved = localStorage.getItem('evein_events');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch {
+        return INITIAL_EVENTS;
+      }
+    }
+    return INITIAL_EVENTS;
+  });
+
+  const [jobs, setJobs] = useState<JobItem[]>(() => {
+    const saved = localStorage.getItem('evein_jobs');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch {
+        return INITIAL_JOBS;
+      }
+    }
+    return INITIAL_JOBS;
+  });
+
+  const [applications, setApplications] = useState<JobApplication[]>(() => {
+    const saved = localStorage.getItem('evein_applications');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch {
+        return INITIAL_APPLICATIONS;
+      }
+    }
+    return INITIAL_APPLICATIONS;
+  });
+
+  // Sync to local storage
+  useEffect(() => {
+    localStorage.setItem('evein_users', JSON.stringify(allUsers));
+  }, [allUsers]);
+
+  useEffect(() => {
+    localStorage.setItem('evein_current_user', currentUser ? JSON.stringify(currentUser) : '');
+  }, [currentUser]);
+
+  useEffect(() => {
+    localStorage.setItem('evein_events', JSON.stringify(events));
+  }, [events]);
+
+  useEffect(() => {
+    localStorage.setItem('evein_jobs', JSON.stringify(jobs));
+  }, [jobs]);
+
+  useEffect(() => {
+    localStorage.setItem('evein_applications', JSON.stringify(applications));
+  }, [applications]);
   
   // Real notifications queue
   const [notifications, setNotifications] = useState<SystemNotification[]>([
@@ -137,16 +217,7 @@ export default function App() {
         setShowAuthModal={setShowAuthModal}
       />
 
-      {/* 2. Demonstration switcher alert banner (To inform evaluator they can swap roles dynamically) */}
-      <div className="bg-amber-500 text-neutral-950 text-[11px] font-semibold py-2 px-4 shadow-inner text-center flex flex-col sm:flex-row items-center justify-center gap-2">
-        <div className="flex items-center gap-1">
-          <ShieldCheck className="w-4 h-4 shrink-0 text-neutral-905" />
-          <span>[Prestige Demo Mode Enabled] คุณกำลังเข้าใช้งานเป็นแบรนด์กิตติมศักดิ์ <strong>"Aurum Luxury Spa (Brand)"</strong></span>
-        </div>
-        <div className="text-[10px] bg-neutral-950 text-gold-300 font-bold px-2 py-0.5 rounded uppercase">
-          แต่อินฟลูฯ และแอดมินจำลอง สามารถสลับบทบาทบัญชีผ่านปุ่ม "จำลองบทบาท" ด้านบนขวาได้ทันทีค่ะ
-        </div>
-      </div>
+
 
       {/* 3. Main core view content wrapper */}
       <main className="flex-1 pb-16">
@@ -209,6 +280,16 @@ export default function App() {
           <ProfileView
             currentUser={currentUser}
             setCurrentUser={setCurrentUser}
+            triggerToast={triggerToast}
+          />
+        )}
+
+        {/* Website Manager backend - strictly guarded for Admin users */}
+        {activeTab === 'adminBackend' && currentUser?.role === 'Admin' && (
+          <AdminBackendView
+            allUsers={allUsers}
+            setAllUsers={setAllUsers}
+            currentUser={currentUser}
             triggerToast={triggerToast}
           />
         )}

@@ -38,7 +38,7 @@ export default function ReviewJobsView({
   const [province, setProvince] = useState('กรุงเทพมหานคร');
   const [platforms, setPlatforms] = useState<('Tiktok' | 'Facebook' | 'Instagram' | 'YouTube')[]>([]);
   const [category, setCategory] = useState('เครื่องสำอาง');
-  const [ageRange, setAgeRange] = useState('18-25');
+  const [ageRange, setAgeRange] = useState('18-23');
   const [genderRequired, setGenderRequired] = useState<'All' | 'Male' | 'Female' | 'LGBTQ'>('All');
   const [followerRange, setFollowerRange] = useState('All');
   const [budget, setBudget] = useState('');
@@ -125,7 +125,7 @@ export default function ReviewJobsView({
     setProvince('กรุงเทพมหานคร');
     setPlatforms([]);
     setCategory('เครื่องสำอาง');
-    setAgeRange('18-25');
+    setAgeRange('18-23');
     setGenderRequired('All');
     setFollowerRange('All');
     setBudget('');
@@ -267,9 +267,10 @@ export default function ReviewJobsView({
               className="w-full px-3 py-2 border border-neutral-200 rounded text-xs focus:ring-1 focus:ring-gold-500 outline-none bg-white"
             >
               <option value="ทั้งหมด">ทั้งหมด (ไม่จำกัดอายุ)</option>
-              <option value="18-25">วัยรุ่นริชสตาร์ (18-25 ปี)</option>
-              <option value="20-35">วัยทำงานรุ่นใหม่ (20-35 ปี)</option>
-              <option value="25-45">วัยผู้ใหญ่ลักชัวรี่ (25-45 ปี)</option>
+              <option value="18-23">18 - 23 ปี</option>
+              <option value="24-30">24 - 30 ปี</option>
+              <option value="31-45">31 - 45 ปี</option>
+              <option value="45-60">45 - 60 ปี</option>
             </select>
           </div>
 
@@ -565,9 +566,10 @@ export default function ReviewJobsView({
                     onChange={e => setAgeRange(e.target.value)}
                     className="w-full px-3.5 py-2 border rounded border-neutral-200 text-xs outline-none bg-white"
                   >
-                    <option value="18-25">วัยรุ่นริชสตาร์ (18-25 ปี)</option>
-                    <option value="20-35">วัยทำงานรุ่นใหญ่ (20-35 ปี)</option>
-                    <option value="25-45">วัยผู้ใหญ่ลักชัวรี่ (25-45 ปี)</option>
+                    <option value="18-23">18 - 23 ปี</option>
+                    <option value="24-30">24 - 30 ปี</option>
+                    <option value="31-45">31 - 45 ปี</option>
+                    <option value="45-60">45 - 60 ปี</option>
                   </select>
                 </div>
 

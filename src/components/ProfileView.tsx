@@ -232,9 +232,11 @@ export default function ProfileView({
               <div className="grid grid-cols-2 gap-4">
                 {/* Age */}
                 <div className="space-y-1.5">
-                  <label className="block text-xs font-bold text-neutral-700">อายุ</label>
+                  <label className="block text-xs font-bold text-neutral-700">อายุ (18 - 60 ปี)</label>
                   <input
                     type="number"
+                    min={18}
+                    max={60}
                     value={age}
                     onChange={e => setAge(Number(e.target.value))}
                     className="w-full px-3 py-1.5 border rounded border-neutral-200 text-xs"

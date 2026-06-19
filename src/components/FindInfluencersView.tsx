@@ -40,8 +40,10 @@ export default function FindInfluencersView({
 
     // 3. Age filter
     if (filterAge !== 'ทั้งหมด') {
-      if (filterAge === 'under25' && inf.age >= 25) return false;
-      if (filterAge === 'over25' && inf.age < 25) return false;
+      if (filterAge === '18-23' && (inf.age < 18 || inf.age > 23)) return false;
+      if (filterAge === '24-30' && (inf.age < 24 || inf.age > 30)) return false;
+      if (filterAge === '31-45' && (inf.age < 31 || inf.age > 45)) return false;
+      if (filterAge === '45-60' && (inf.age < 45 || inf.age > 60)) return false;
     }
 
     // 4. Followers tier filter
@@ -154,8 +156,10 @@ export default function FindInfluencersView({
               className="w-full px-2.5 py-2 border border-neutral-150 rounded text-xs outline-none bg-white"
             >
               <option value="ทั้งหมด">ทั้งหมด</option>
-              <option value="under25">ต่ำกว่า 25 ปี</option>
-              <option value="over25">ตั้งแต่ 25 ปีขึ้นไป</option>
+              <option value="18-23">18 - 23 ปี</option>
+              <option value="24-30">24 - 30 ปี</option>
+              <option value="31-45">31 - 45 ปี</option>
+              <option value="45-60">45 - 60 ปี</option>
             </select>
           </div>
 
@@ -211,7 +215,13 @@ export default function FindInfluencersView({
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
-            {filteredInfluencers.map((inf) => (
+            {filteredInfluencers.length === 0 ? (
+              <div className="col-span-1 sm:col-span-2 text-center py-16 bg-white rounded-3xl border border-neutral-100 p-8 space-y-3">
+                <p className="text-sm font-medium text-neutral-500">ไม่พบครีเอเตอร์ที่ตรงตามสเปกตัวกรองของคุณในขณะนี้</p>
+                <p className="text-xs text-neutral-400">คุณสามารถเริ่มต้นโดยสร้างโปรไฟล์ครีเอเตอร์ของคุณเองได้ค่ะ!</p>
+              </div>
+            ) : (
+              filteredInfluencers.map((inf) => (
               <div
                 key={inf.id}
                 className="bg-white rounded-3xl border border-[#D4AF37]/10 hover:border-[#D4AF37]/35 overflow-hidden flex flex-col justify-between p-6 transition-all duration-500 luxury-shadow"
@@ -294,7 +304,7 @@ export default function FindInfluencersView({
                   </button>
                 </div>
               </div>
-            ))}
+            )))}
           </div>
         </div>
 
