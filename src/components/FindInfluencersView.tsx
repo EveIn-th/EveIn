@@ -298,9 +298,9 @@ export default function FindInfluencersView({
 
                   <button
                     onClick={() => setSelectedInfluencer(inf)}
-                    className="px-4 py-2.5 rounded-full bg-black text-[#D4AF37] border border-[#D4AF37]/35 text-[10px] font-bold tracking-widest uppercase hover:bg-[#D4AF37] hover:text-white transition-all duration-300 cursor-pointer"
+                    className="px-4 py-2.5 rounded-full bg-black text-[#D4AF37] border border-[#D4AF37]/35 text-xs font-bold tracking-wide hover:bg-[#D4AF37] hover:text-white transition-all duration-300 cursor-pointer"
                   >
-                    VIP Profile Overview
+                    ดูข้อมูลอินฟลู
                   </button>
                 </div>
               </div>
@@ -323,9 +323,9 @@ export default function FindInfluencersView({
               </div>
               <button
                 onClick={() => setSelectedInfluencer(null)}
-                className="p-1 text-neutral-400 hover:text-white"
+                className="px-3 py-1 bg-neutral-900 border border-neutral-800 text-xs text-neutral-300 hover:text-white rounded-lg hover:bg-neutral-800 transition-colors"
               >
-                关闭
+                ปิด
               </button>
             </div>
 

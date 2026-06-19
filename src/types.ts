@@ -24,6 +24,7 @@ export interface User {
     platform: 'Tiktok' | 'Facebook' | 'Instagram' | 'YouTube';
     handle: string;
     followers: number;
+    url?: string;
   }[];
 }
 
