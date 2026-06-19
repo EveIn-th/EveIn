@@ -1,0 +1,83 @@
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Montserrat:wght@300;400;500;600;700&family=Prompt:wght@300;400;500;600&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Prompt", "Montserrat", sans-serif;
+  --font-serif: "Cinzel", serif;
+  --font-prompt: "Prompt", sans-serif;
+  
+  --color-gold-50: #FCF9F0;
+  --color-gold-100: #F6EDD5;
+  --color-gold-200: #EADAAA;
+  --color-gold-300: #DCC27B;
+  --color-gold-400: #CDA754;
+  --color-gold-500: #B8860B;
+  --color-gold-600: #A8792F;
+  --color-gold-700: #8C6026;
+  --color-gold-800: #714C20;
+  --color-gold-900: #5C3D1B;
+  --color-gold-950: #33200D;
+  
+  --color-luxe-cream: #FCFAF7;
+  --color-luxe-dark: #1A1A1A;
+}
+
+body {
+  background-color: #FCFAF7;
+  color: #1A1A1A;
+  font-family: "Prompt", "Montserrat", sans-serif;
+}
+
+/* Editorial Aesthetic specific utility classes */
+.gold-gradient {
+  background: linear-gradient(135deg, #D4AF37 0%, #F2D06B 50%, #B8860B 100%);
+}
+
+.gold-text {
+  color: #B8860B;
+}
+
+.luxury-shadow {
+  box-shadow: 0 10px 30px -10px rgba(184, 134, 11, 0.15);
+}
+
+.glass-nav {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(212, 175, 55, 0.2);
+}
+
+/* Luxury custom animations & styles */
+.gold-gradient-text {
+  background: linear-gradient(135deg, #D4AF37 0%, #F2D06B 50%, #B8860B 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.gold-border {
+  border-image: linear-gradient(135deg, #F6EDD5, #CDA754, #8C6026) 1;
+}
+
+.gold-gradient-bg {
+  background: linear-gradient(135deg, #CDA754 0%, #A8792F 100%);
+}
+
+.gold-hover-glow:hover {
+  box-shadow: 0 0 15px rgba(205, 167, 84, 0.4);
+}
+
+/* Hide scrollbar default utilities */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #FDFCF7;
+}
+::-webkit-scrollbar-thumb {
+  background: #CDA754;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #A8792F;
+}
