@@ -159,10 +159,6 @@ export default function ProfileView({
   const handleSaveProfile = (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Determine final lock status
-    const finalBankName = bankLocked ? initialBankName : bankName;
-    const finalBankAccount = bankLocked ? initialBankAccount : bankAccount;
-    
     const updatedUser: UserType = {
       ...currentUser,
       avatar: avatar,
@@ -178,8 +174,8 @@ export default function ProfileView({
       // Influencer Specific
       workCategories: isBrand ? undefined : workCategories,
       realName: isBrand ? currentUser.realName : realName,
-      bankName: finalBankName,
-      bankAccount: finalBankAccount,
+      bankName: isBrand ? undefined : bankName,
+      bankAccount: isBrand ? undefined : bankAccount,
       lineId: isBrand ? currentUser.lineId : lineId,
       email: email,
       phone: phone,
@@ -193,16 +189,11 @@ export default function ProfileView({
       }))
     };
 
-    // If they specified a bank account and saved it, lock it forever according to Thai regulations specifications
-    if (finalBankName.trim() && finalBankAccount.trim() && !bankLocked) {
-      setBankLocked(true);
-    }
-
     setCurrentUser(updatedUser);
     setAllUsers(prev => 
       prev.map(u => u.id === updatedUser.id ? updatedUser : u)
     );
-    triggerToast('บันทึกปรับปรุงประวัติบัญชีสำเร็จเรียบร้อยแล้วค่ะ! ข้อมูลส่วนตัวได้รับการอัปเดตและเข้าระบบจัดการหลังบ้านระดับสูงแล้ว', 'success');
+    triggerToast('บันทึกปรับปรุงประวัติบัญชีสำเร็จเรียบร้อยแล้วค่ะ! ข้อมูลส่วนตัวได้รับการอัปเดตแล้ว', 'success');
   };
 
   return (
@@ -261,7 +252,7 @@ export default function ProfileView({
                 {currentUser.brandName || currentUser.username}
               </h3>
               
-              {/* Role Indicator as specified: "ยูสเซอร์ ไม่ใช่แอดมิน" - along with explicit type (อินฟู / แบรนด์) */}
+              {/* Role Indicator along with explicit type (อินฟู / แบรนด์) */}
               <div className="flex flex-col gap-1.5 items-center justify-center">
                 {currentUser.role === 'Admin' ? (
                   <span className="text-[10px] font-bold tracking-widest text-[#D4AF37] bg-neutral-950 border border-[#D4AF37] px-3.5 py-1 rounded-full uppercase">
@@ -269,9 +260,6 @@ export default function ProfileView({
                   </span>
                 ) : (
                   <div className="space-y-1">
-                    <span className="block text-[11px] font-extrabold tracking-wide text-amber-900 bg-amber-50 px-3 py-1 rounded-full border border-amber-200/50">
-                      👤 สถานะเป็น: ยูสเซอร์ ไม่ใช่แอดมิน
-                    </span>
                     <span className="block text-[11.5px] font-bold text-gray-700">
                       ประเภทสมาชิก: {currentUser.role === 'Brand' ? '🏢 แบรนด์ผู้ว่าจ้าง (Brand)' : '✨ อินฟลูเอนเซอร์ (Influencer)'}
                     </span>
@@ -646,90 +634,43 @@ export default function ProfileView({
           </div>
 
           {/* ======================================= */}
-          {/* 2. SECURITY-CRITICAL PERMANENT LOCK BANK CARD SECTION */}
+          {/* 2. INFLUENCER BANK INFORMATION EDITABLE (BRAND EXCLUDED) */}
           {/* ======================================= */}
-          <div className="bg-white p-6 sm:p-8 rounded-3xl border-2 border-amber-400/50 luxury-shadow space-y-4">
-            <div className="flex gap-2 items-center pb-3 border-b border-neutral-100">
-              <Landmark className="w-5 h-5 text-amber-600" />
-              <div>
-                <h3 className="text-xs font-bold text-neutral-900 uppercase tracking-wider">ช่องข้อมูลเลขบัญชีธนาคาร (ระบบล็อกถาวรเมื่อบันทึกสลักเสร็จ)</h3>
-                <span className="text-[10px] text-[#8C6026] block">แยกออกจากฟอร์มทั่วไปตามกฎบัญชี ห้ามพฤติกรรมสวมสิทธิ</span>
+          {!isBrand && (
+            <div className="bg-white p-6 sm:p-8 rounded-3xl border-2 border-[#D4AF37]/20 luxury-shadow space-y-4">
+              <div className="flex gap-2 items-center pb-3 border-b border-neutral-100">
+                <Landmark className="w-5 h-5 text-amber-600" />
+                <div>
+                  <h3 className="text-xs font-bold text-neutral-900 uppercase tracking-wider">ช่องข้อมูลเลขบัญชีธนาคาร</h3>
+                  <span className="text-[10px] text-neutral-400 block">กรอกข้อมูลบัญชีธนาคารรับค่าจ้าง (สามารถแก้ไขเปลี่ยนแปลงได้ตลอดเวลา)</span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="block text-[11px] font-bold text-neutral-600">ชื่อสถาบันธนาคาร</label>
+                  <input
+                    type="text"
+                    value={bankName}
+                    onChange={e => setBankName(e.target.value)}
+                    placeholder="เช่น ธนาคารกสิกรไทย (KBank)"
+                    className="w-full px-3 py-2 border border-neutral-200 rounded text-xs outline-none bg-white font-prompt"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="block text-[11px] font-bold text-neutral-600">เลขที่บัญชีธนาคาร</label>
+                  <input
+                    type="text"
+                    value={bankAccount}
+                    onChange={e => setBankAccount(e.target.value)}
+                    placeholder="เช่น 055-2-45210-9"
+                    className="w-full px-3 py-2 border border-neutral-200 rounded text-xs outline-none bg-white"
+                  />
+                </div>
               </div>
             </div>
-
-            {bankLocked ? (
-              // LOCKED READ ONLY DISPLAY - Unalterable representation
-              <div className="bg-neutral-950 p-5 rounded-2xl border border-gold-400 text-white space-y-3 shadow-md relative overflow-hidden">
-                <div className="absolute right-2 top-2">
-                  <span className="inline-flex items-center gap-1 text-[8.5px] font-extrabold uppercase bg-gold-400 text-neutral-950 px-2.5 py-0.5 rounded-full tracking-wider animate-pulse">
-                     🔒 LOCKED SECURITY
-                  </span>
-                </div>
-                
-                <div className="space-y-1">
-                  <span className="block text-[8px] tracking-[0.2em] text-neutral-400 font-bold uppercase">ธนาคารพาณิชย์ที่ยืนยันระบบแล้ว</span>
-                  <p className="text-sm font-extrabold text-gold-400 font-serif leading-tight">🏦 {bankName}</p>
-                </div>
-
-                <div className="space-y-1">
-                  <span className="block text-[8px] tracking-[0.2em] text-neutral-400 font-bold uppercase">เลขสมุดนำส่งยอดค่าจ้าง</span>
-                  <p className="text-base font-mono tracking-widest text-white leading-tight">{bankAccount}</p>
-                </div>
-
-                <div className="p-2.5 bg-neutral-900 rounded-lg text-[9px] text-amber-200/90 leading-normal">
-                  ⚠️ <strong>ไม่สามารถแก้ไขได้อีก:</strong> เพื่อความซื่อสัตย์ของการป้องกันสลิปสวมแอดเดรสและรอยทางไซเบอร์ ข้อมูลการเงินนี้ถูกสแตมป์เข้าระบบ Backend เรียบร้อยแล้วค่ะ หากต้องการเปลี่ยน กรุณาเขียนคำร้องติดต่อแอดมินหรือแอดมินเจ้าของเว็บไซต์เท่านั้นค่ะ
-                </div>
-              </div>
-            ) : (
-              // EDITABLE ONCE (Until they record it once)
-              <div className="bg-amber-50/50 p-5 rounded-2xl border border-amber-200 space-y-4">
-                <div className="p-3 bg-amber-50 bg-opacity-70 rounded-lg text-[10px] text-amber-800 leading-relaxed font-light">
-                  📌 <strong>ป้อนข้อมูลบัญชีธนาคารเพื่อรับเงินโอนค่าจ้าง:</strong> ข้อมูลนี้เมื่อป้อนและกดบันทึกประวัติแล้ว <strong>"จะไม่สามารถแก้ไขได้อีกในภายหลังเป็นอุปสรรคตามพัสดุสัญญา"</strong> กรุณาตรวจสอบเบอร์เลขธนาคารและสะกดชื่อของคุณอย่างระมัดระวังค่ะ!
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <label className="block text-[11px] font-bold text-neutral-600">ชื่อสถาบันธนาคาร</label>
-                    <input
-                      type="text"
-                      value={bankName}
-                      onChange={e => setBankName(e.target.value)}
-                      placeholder="เช่น ธนาคารกสิกรไทย (KBank)"
-                      className="w-full px-3 py-2 border border-neutral-200 rounded text-xs outline-none bg-white font-prompt"
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="block text-[11px] font-bold text-neutral-600">เลขที่บัญชีธนาคารแท้</label>
-                    <input
-                      type="text"
-                      value={bankAccount}
-                      onChange={e => setBankAccount(e.target.value)}
-                      placeholder="เช่น 055-2-45210-9"
-                      className="w-full px-3 py-2 border border-neutral-200 rounded text-xs outline-none bg-white"
-                    />
-                  </div>
-                </div>
-
-                <div className="pt-2 flex justify-end">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (!bankName.trim() || !bankAccount.trim()) {
-                        triggerToast('กรุณากรอกทั้งชื่อธนาคารและเลขที่บัญชีก่อนกดล็อคบันทึกค่ะ', 'warning');
-                        return;
-                      }
-                      setBankLocked(true);
-                      triggerToast('สถิติรายละเอียดบัญชีธนาคารถูกล็อคชั่วคราวแล้ว กรุณากดปุ่ม "บันทึกประวัติตามประเภทงาน" เพื่อบันทึกอย่างแน่นอนค่ะ', 'info');
-                    }}
-                    className="px-4 py-1.5 bg-black border border-amber-400 text-amber-400 hover:text-white rounded text-[10px] font-bold uppercase transition"
-                  >
-                    🔒 กดตรวจสอบและล็อคเลขบัญชีธนาคาร
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
+          )}
 
         </form>
       </div>

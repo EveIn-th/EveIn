@@ -61,39 +61,29 @@ export default function ChatMessengerWidget({
 
   if (!currentUser) return null;
 
-  // Filter possible chat partners
+  // Filter possible chat partners - only showing users who have a message history or is the current active recipient.
   const eligiblePartners = allUsers.filter(u => {
     if (u.id === currentUser.id) return false;
-    if (currentUser.role === 'Admin') return true;
-    if (currentUser.role === 'Brand') return u.role === 'Influencer' || u.role === 'Admin';
-    if (currentUser.role === 'Influencer') return u.role === 'Brand' || u.role === 'Admin';
-    return true;
+    
+    // Check if there's any genuine messaging history between the current user and this partner
+    const hasHistory = allMessages.some(
+      m => (m.senderId === currentUser.id && m.receiverId === u.id) ||
+           (m.senderId === u.id && m.receiverId === currentUser.id)
+    );
+    
+    const isCurrentlySelected = u.id === chatWithUserId || u.id === activeRecipientId;
+    
+    return hasHistory || isCurrentlySelected;
   });
 
-  // Obtain active messages for current dialog (with helper seed if empty)
+  // Obtain active messages for current dialog (genuine messages only, no auto seed generator)
   const getActiveConversationMessages = () => {
     if (!currentRecipient) return [];
     
-    const conversation = allMessages.filter(
+    return allMessages.filter(
       m => (m.senderId === currentUser.id && m.receiverId === currentRecipient.id) ||
            (m.senderId === currentRecipient.id && m.receiverId === currentUser.id)
     );
-
-    if (conversation.length === 0) {
-      // Seed a friendly starting discussion to keep the ecosystem active & lively!
-      return [
-        {
-          id: `seed_1_${currentRecipient.id}`,
-          senderId: currentRecipient.id,
-          senderName: currentRecipient.brandName || currentRecipient.username,
-          receiverId: currentUser.id,
-          content: `สวัสดีค่ะคุณ ${currentUser.username} ยินดีที่ได้รู้จักค่ะ มีข้อตกลงหรือเกณฑ์แคมเปญงานตัวไหนที่ต้องการเสนอคุยวางดีล สามารถพิมพ์ปรึกษากับฉันตรงนี้ได้ทันทีเลยนะคะ 💖`,
-          timestamp: new Date(Date.now() - 3600000).toISOString()
-        }
-      ];
-    }
-
-    return conversation;
   };
 
   const handleSendMessage = (e: React.FormEvent) => {
@@ -113,40 +103,28 @@ export default function ChatMessengerWidget({
     };
 
     setAllMessages(prev => [...prev, newMsg]);
-
-    // Simulate smart auto-reply
-    setIsTyping(true);
-    setTimeout(() => {
-      let replyContent = 'รับทราบขอบเขตรายละเอียดที่แจ้งหมดแล้วค่ะ! ฉันจะเริ่มระเบียบจัดเตรียมเพื่อส่งแผนงานให้แรกรุ่นในหน้าแดชบอร์ดความร่วมมือนะคะ ✨';
-      
-      const lower = sentText.toLowerCase();
-      if (lower.includes('ราคา') || lower.includes('ต่อรอง') || lower.includes('บาท') || lower.includes('ตกลง')) {
-        replyContent = 'ยอดงบประมาณเสนอราคานี้ ได้รับการยืนยันเข้าตรงระบบจดจำแล้วค่ะ พร้อมทำสัญญาสุทธิปลอดภัยแน่นอนค่ะ ยินดีค่ะ!';
-      } else if (lower.includes('สลิป') || lower.includes('ชำระ') || lower.includes('จ่ายเงิน') || lower.includes('เงิน')) {
-        replyContent = 'ขอบพระคุณมากๆ ค่ะ! ระบบตรวจสอบสลิปเงินของแอดมินกลางจะอนุมัติและปรับสถานะให้ทันทีบนหน้าเว็บนะคะ 💵';
-      } else if (lower.includes('แก้ไข') || lower.includes('ปรับปรุง') || lower.includes('แก้')) {
-        replyContent = 'เข้าใจมุมภาพคอนเซปต์เลยค่ะ เดี๋ยวฉันจะดำเนินการแก้ไขมุมวิดิโอสกินแคร์ และนำเสนอลิ้งค์ตรวจงานให้คุณทันทีค่ะ';
-      }
-
-      const replyMsg: LiveMessage = {
-        id: `msg_reply_${Date.now()}`,
-        senderId: currentRecipient.id,
-        senderName: currentRecipient.brandName || currentRecipient.username,
-        receiverId: currentUser.id,
-        content: replyContent,
-        timestamp: new Date().toISOString()
-      };
-
-      setAllMessages(prev => [...prev, replyMsg]);
-      setIsTyping(false);
-      triggerToast(`ได้รับข้อความใหม่จาก @${currentRecipient.username} แล้วค่ะ`, 'success');
-    }, 1200);
+    // NO automatic replies or timeouts here. Users only communicate with real responses.
   };
 
   const conversationMessages = getActiveConversationMessages();
 
   return (
-    <div className="fixed bottom-22 right-6 w-[360px] h-[500px] bg-white rounded-2xl shadow-2xl border-2 border-gold-300 z-50 overflow-hidden flex flex-col font-sans transition-all animate-in fade-in zoom-in-95">
+    <div className="fixed bottom-22 right-6 w-[360px] h-[520px] bg-white rounded-2xl shadow-2xl border-2 border-gold-300 z-50 overflow-hidden flex flex-col font-sans transition-all animate-in fade-in zoom-in-95">
+      
+      {/* Persistent Widget Header with Close Button - satisfied: 'สามารถให้มีกดปุ่มปิดทุกอัน' */}
+      <div className="bg-neutral-950 px-4 py-3 border-b border-[#D4AF37] flex items-center justify-between shrink-0 font-prompt">
+        <div className="flex items-center gap-2">
+          <MessageSquare className="w-4 h-4 text-[#D4AF37]" />
+          <span className="text-xs font-bold text-white tracking-wider">ห้องแชทข้อตกลงพิเศษ</span>
+        </div>
+        <button
+          onClick={onClose}
+          className="text-neutral-400 hover:text-white transition-colors cursor-pointer"
+          title="ปิดหน้าต่างแชท"
+        >
+          <X className="w-4 h-4" />
+        </button>
+      </div>
       
       {/* Tab select bar */}
       <div className="bg-neutral-900 px-3/4 py-1.5 flex border-b border-gold-400">

@@ -107,25 +107,19 @@ export default function App() {
     localStorage.setItem('evein_applications', JSON.stringify(applications));
   }, [applications]);
   
-  // Real notifications queue
-  const [notifications, setNotifications] = useState<SystemNotification[]>([
-    {
-      id: 'n1',
-      title: 'แบรนด์ตอบรับงานแล้ว',
-      message: 'แอลฟอร์ด แอสโทเรีย แกรนด์บอลรูม อนุมัติการเข้าเป็นคนพรีเซนเตอร์ แคมเปญสกินแคร์ทองคำแล้วค่ะ',
-      timestamp: new Date().toISOString(),
-      read: false,
-      type: 'success'
-    },
-    {
-      id: 'n2',
-      title: 'อินฟลูเอนเซอร์ส่งมอบงาน',
-      message: 'คุณ @Chanya_Luxe ได้แนบลิงก์คลิปสั้นลง IG สำหรับแคมเปญสปาเรียบร้อยแล้วค่ะ',
-      timestamp: new Date(Date.now() - 3600000).toISOString(),
-      read: true,
-      type: 'info'
+  // Real notifications queue - only from real actions and saved in localStorage
+  const [notifications, setNotifications] = useState<SystemNotification[]>(() => {
+    const saved = localStorage.getItem('evein_notifications');
+    try {
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
     }
-  ]);
+  });
+
+  useEffect(() => {
+    localStorage.setItem('evein_notifications', JSON.stringify(notifications));
+  }, [notifications]);
 
   // Auth Dialog state
   const [showAuthModal, setShowAuthModal] = useState<'login' | 'register' | null>(null);

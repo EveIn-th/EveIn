@@ -272,7 +272,7 @@ export default function FindInfluencersView({
                           <ShieldCheck className="w-4 h-4 text-[#D4AF37]" />
                         </h3>
                         <p className="text-[10px] text-neutral-400 font-medium uppercase tracking-wider">
-                          เพศ {inf.gender === 'Female' ? 'หญิง' : inf.gender === 'Male' ? 'ชาย' : 'LGBTQ'} • อายุ {inf.age} ปี • กทม. และปริมณฑล
+                          เพศ {inf.gender === 'Female' ? 'หญิง' : inf.gender === 'Male' ? 'ชาย' : 'LGBTQ'} • อายุ {inf.age} ปี
                         </p>
                       </div>
                     </div>
