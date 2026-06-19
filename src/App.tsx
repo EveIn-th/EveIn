@@ -20,106 +20,90 @@ export default function App() {
   // Tab Routing ('home', 'events', 'reviewJobs', 'findInfluencers', 'dashboard', 'profile')
   const [activeTab, setActiveTab] = useState<string>('home');
 
-  // Unified global data stores with local storage sync for actual real world persistence
+  // Unified global data stores with Express Server and LocalStorage dual persistence
   const [allUsers, setAllUsers] = useState<User[]>(() => {
     const saved = localStorage.getItem('evein_users');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        const hasAdmin = parsed.some((u: User) => u.email.toLowerCase() === 'adminpoei@evein.com');
-        if (!hasAdmin) {
-          return [...MOCK_USERS, ...parsed.filter((p: User) => p.email.toLowerCase() !== 'adminpoei@evein.com')];
-        }
-        return parsed;
-      } catch (e) {
-        return MOCK_USERS;
-      }
+    try {
+      return saved ? JSON.parse(saved) : MOCK_USERS;
+    } catch {
+      return MOCK_USERS;
     }
-    return MOCK_USERS;
   });
 
   const [currentUser, setCurrentUser] = useState<User | null>(() => {
     const saved = localStorage.getItem('evein_current_user');
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {
-        return null;
-      }
-    }
-    return null;
-  });
-  
-  const [events, setEvents] = useState<EventItem[]>(() => {
-    const saved = localStorage.getItem('evein_events');
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch {
-        return INITIAL_EVENTS;
-      }
-    }
-    return INITIAL_EVENTS;
-  });
-
-  const [jobs, setJobs] = useState<JobItem[]>(() => {
-    const saved = localStorage.getItem('evein_jobs');
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch {
-        return INITIAL_JOBS;
-      }
-    }
-    return INITIAL_JOBS;
-  });
-
-  const [applications, setApplications] = useState<JobApplication[]>(() => {
-    const saved = localStorage.getItem('evein_applications');
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch {
-        return INITIAL_APPLICATIONS;
-      }
-    }
-    return INITIAL_APPLICATIONS;
-  });
-
-  // Sync to local storage
-  useEffect(() => {
-    localStorage.setItem('evein_users', JSON.stringify(allUsers));
-  }, [allUsers]);
-
-  useEffect(() => {
-    localStorage.setItem('evein_current_user', currentUser ? JSON.stringify(currentUser) : '');
-  }, [currentUser]);
-
-  useEffect(() => {
-    localStorage.setItem('evein_events', JSON.stringify(events));
-  }, [events]);
-
-  useEffect(() => {
-    localStorage.setItem('evein_jobs', JSON.stringify(jobs));
-  }, [jobs]);
-
-  useEffect(() => {
-    localStorage.setItem('evein_applications', JSON.stringify(applications));
-  }, [applications]);
-  
-  // Real notifications queue - only from real actions and saved in localStorage
-  const [notifications, setNotifications] = useState<SystemNotification[]>(() => {
-    const saved = localStorage.getItem('evein_notifications');
     try {
-      return saved ? JSON.parse(saved) : [];
+      return saved ? JSON.parse(saved) : null;
     } catch {
-      return [];
+      return null;
     }
   });
+  
+  const [events, setEvents] = useState<EventItem[]>([]);
+  const [jobs, setJobs] = useState<JobItem[]>([]);
+  const [applications, setApplications] = useState<JobApplication[]>([]);
+  const [notifications, setNotifications] = useState<SystemNotification[]>([]);
+  const [supportHistory, setSupportHistory] = useState<any[]>([]);
 
+  // Load from Backend API on mount
   useEffect(() => {
+    fetch('/api/state')
+      .then(res => res.json())
+      .then(data => {
+        if (data.allUsers && data.allUsers.length > 0) {
+          setAllUsers(data.allUsers);
+        }
+        if (data.events) setEvents(data.events);
+        if (data.jobs) setJobs(data.jobs);
+        if (data.applications) setApplications(data.applications);
+        if (data.notifications) setNotifications(data.notifications);
+        if (data.supportHistory) setSupportHistory(data.supportHistory);
+      })
+      .catch(err => {
+        console.warn('Backend server state loading offline, falling back to localStorage buffer:', err);
+        // Fallback loads
+        const savedJobs = localStorage.getItem('evein_jobs');
+        if (savedJobs) setJobs(JSON.parse(savedJobs));
+        const savedApps = localStorage.getItem('evein_applications');
+        if (savedApps) setApplications(JSON.parse(savedApps));
+        const savedEvents = localStorage.getItem('evein_events');
+        if (savedEvents) setEvents(JSON.parse(savedEvents));
+        const savedNotifs = localStorage.getItem('evein_notifications');
+        if (savedNotifs) setNotifications(JSON.parse(savedNotifs));
+        const savedSupports = localStorage.getItem('evein_support_history');
+        if (savedSupports) setSupportHistory(JSON.parse(savedSupports));
+      });
+  }, []);
+
+  // Synchronize state mutations to backend API & localStorage as backup
+  useEffect(() => {
+    if (allUsers.length === 0) return;
+
+    localStorage.setItem('evein_users', JSON.stringify(allUsers));
+    localStorage.setItem('evein_current_user', currentUser ? JSON.stringify(currentUser) : '');
+    localStorage.setItem('evein_events', JSON.stringify(events));
+    localStorage.setItem('evein_jobs', JSON.stringify(jobs));
+    localStorage.setItem('evein_applications', JSON.stringify(applications));
     localStorage.setItem('evein_notifications', JSON.stringify(notifications));
-  }, [notifications]);
+    localStorage.setItem('evein_support_history', JSON.stringify(supportHistory));
+
+    // Post sync payload to backend server
+    const syncPayload = {
+      allUsers,
+      events,
+      jobs,
+      applications,
+      notifications,
+      supportHistory
+    };
+
+    fetch('/api/sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(syncPayload)
+    })
+    .catch(err => console.error('Error syncing state with backend server:', err));
+  }, [allUsers, currentUser, events, jobs, applications, notifications, supportHistory]);
 
   // Auth Dialog state
   const [showAuthModal, setShowAuthModal] = useState<'login' | 'register' | null>(null);
@@ -158,7 +142,7 @@ export default function App() {
   };
 
   const handleApplyForJob = (jobId: string) => {
-    if (!currentUser || currentUser.role !== 'Influencer') return;
+    if (!currentUser || (currentUser.role !== 'Influencer' && currentUser.role !== 'Admin')) return;
 
     const targetJob = jobs.find(j => j.id === jobId);
     if (!targetJob) return;
@@ -286,6 +270,8 @@ export default function App() {
             setAllUsers={setAllUsers}
             currentUser={currentUser}
             triggerToast={triggerToast}
+            supportHistory={supportHistory}
+            setSupportHistory={setSupportHistory}
           />
         )}
       </main>
@@ -293,7 +279,7 @@ export default function App() {
       {/* 4. Elegant custom floating notifications Toast system */}
       {toast && (
         <div className="fixed bottom-24 left-1/2 transform -translate-x-1/2 z-50 flex items-center gap-3 bg-neutral-950 border border-gold-400 p-4 rounded-xl shadow-2xl animate-in fade-in slide-in-from-bottom-5 max-w-sm w-11/12">
-          <div className="w-2.5 h-10 rounded-full bg-gold-400 shrink-0"></div>
+          <div className="w-2.5 h-10 rounded-full bg-gold-450 shrink-0"></div>
           <div className="flex-1">
             <span className="block text-[8px] uppercase tracking-wider text-gold-400 font-bold">ประกาศระบบ EveIn</span>
             <p className="text-[11.5px] text-zinc-100 font-medium font-prompt leading-tight mt-0.5">{toast.message}</p>
@@ -305,7 +291,11 @@ export default function App() {
       )}
 
       {/* 5. Sticky Float Support Concierge Bot (Guest user accessible as specs) */}
-      <StickyChatButton currentUser={currentUser} />
+      <StickyChatButton 
+        currentUser={currentUser} 
+        supportHistory={supportHistory}
+        setSupportHistory={setSupportHistory}
+      />
 
       {/* 6. Partner/Candidate Messenger Window */}
       {chatOpen && chatWithUser && (

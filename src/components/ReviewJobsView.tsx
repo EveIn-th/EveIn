@@ -58,6 +58,9 @@ export default function ReviewJobsView({
 
   // Filters logic
   const filteredJobs = jobs.filter(job => {
+    // 0. Only show open jobs! (งานไหนที่ปิดรับสมัครแล้วไม่ต้องแสดงผลในหน้างานรีวิวอีก ให้แสดงแค่งานที่เปิดรับอยู่)
+    if (!job.isOpen) return false;
+
     // 1. Province filter
     if (selectedProvince !== 'ทุกจังหวัด' && job.province !== selectedProvince) return false;
 
@@ -90,8 +93,8 @@ export default function ReviewJobsView({
 
   const handlePostJob = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!currentUser || currentUser.role !== 'Brand') {
-      triggerToast('บัญชีของท่านต้องเป็นแบรนด์ผู้ว่าจ้างสำหรับการประกาศงานค่ะ', 'warning');
+    if (!currentUser || (currentUser.role !== 'Brand' && currentUser.role !== 'Admin')) {
+      triggerToast('บัญชีของท่านต้องเป็นสิทธิ์แบรนด์หรือผู้ดูแลสูงสุดสำหรับการประกาศงานค่ะ', 'warning');
       return;
     }
 
@@ -135,7 +138,7 @@ export default function ReviewJobsView({
     triggerToast('ประกาศงานจ้างรีวิวสำเร็จแล้วค่ะ! ข้อมูลจะปรากฏบนกระดานผู้สมัครทันที', 'success');
   };
 
-  const isBrand = currentUser?.role === 'Brand';
+  const isBrand = currentUser?.role === 'Brand' || currentUser?.role === 'Admin';
 
   const checkHasApplied = (jobId: string) => {
     if (!currentUser) return false;

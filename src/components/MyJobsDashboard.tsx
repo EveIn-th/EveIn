@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Briefcase, CheckCircle2, XCircle, Clock, Link as LinkIcon, Send, Sparkles, Check, ChevronRight, AlertCircle, RefreshCw, QrCode, FileText, Upload, Plus, Trash2, Edit, MessageSquare } from 'lucide-react';
+import { Briefcase, CheckCircle2, XCircle, Clock, Link as LinkIcon, Send, Sparkles, Check, ChevronRight, AlertCircle, RefreshCw, QrCode, FileText, Upload, Plus, Trash2, Edit, MessageSquare, X } from 'lucide-react';
 import { User, JobItem, JobApplication } from '../types';
 
 interface MyJobsDashboardProps {
@@ -745,9 +745,11 @@ export default function MyJobsDashboard({
               </div>
               <button
                 onClick={() => setSubmitWorkApp(null)}
-                className="p-1 text-neutral-400 hover:text-white"
+                className="p-1 px-2 text-neutral-400 hover:text-white flex items-center gap-1.5 transition-colors duration-150 font-prompt text-xs border border-neutral-800 rounded bg-neutral-900 cursor-pointer"
+                title="ปิด"
               >
-                关闭
+                <X className="w-3.5 h-3.5" />
+                <span>ปิด</span>
               </button>
             </div>
 
@@ -847,9 +849,11 @@ export default function MyJobsDashboard({
               </div>
               <button
                 onClick={() => setPaymentApp(null)}
-                className="p-1 text-neutral-400 hover:text-white"
+                className="p-1 px-2 text-neutral-400 hover:text-white flex items-center gap-1.5 transition-colors duration-150 font-prompt text-xs border border-neutral-800 rounded bg-neutral-900 cursor-pointer"
+                title="ปิด"
               >
-                关闭
+                <X className="w-3.5 h-3.5" />
+                <span>ปิด</span>
               </button>
             </div>
 

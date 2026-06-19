@@ -16,7 +16,9 @@ import {
   Calendar, 
   Hash, 
   Sparkles,
-  Info
+  Info,
+  MessageSquare,
+  Send
 } from 'lucide-react';
 import { User, Role } from '../types';
 
@@ -25,13 +27,17 @@ interface AdminBackendViewProps {
   setAllUsers: React.Dispatch<React.SetStateAction<User[]>>;
   currentUser: User | null;
   triggerToast: (message: string, status: 'success' | 'info' | 'warning') => void;
+  supportHistory: any[];
+  setSupportHistory: React.Dispatch<React.SetStateAction<any[]>>;
 }
 
 export default function AdminBackendView({
   allUsers,
   setAllUsers,
   currentUser,
-  triggerToast
+  triggerToast,
+  supportHistory,
+  setSupportHistory
 }: AdminBackendViewProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState<'All' | 'Brand' | 'Influencer' | 'Admin'>('All');
@@ -51,6 +57,54 @@ export default function AdminBackendView({
   const [newGender, setNewGender] = useState('Female');
   const [newBrandName, setNewBrandName] = useState('');
   const [newBio, setNewBio] = useState('');
+
+  // Support desk state
+  const [selectedChatUserId, setSelectedChatUserId] = useState<string>('guest');
+  const [replyText, setReplyText] = useState('');
+
+  // Group supportHistory by user (senderId) to list on the sidebar
+  const supportUsersList = supportHistory.reduce((acc: any[], current: any) => {
+    // Avoid double entries
+    if (current.senderId && !acc.some(item => item.id === current.senderId)) {
+      const foundUser = allUsers.find(u => u.id === current.senderId);
+      const userMessages = supportHistory.filter(m => m.senderId === current.senderId);
+      const lastMsg = userMessages[userMessages.length - 1];
+      
+      acc.push({
+        id: current.senderId,
+        username: foundUser?.brandName || foundUser?.username || current.senderName || 'ผู้เยี่ยมชม / Guest',
+        avatar: foundUser?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=150',
+        role: foundUser?.role || 'Guest',
+        lastMessage: lastMsg?.text || '',
+        lastTime: lastMsg?.time || ''
+      });
+    }
+    return acc;
+  }, []);
+
+  const activeChatMessages = supportHistory.filter(m => m.senderId === selectedChatUserId);
+
+  const handleSendReply = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!replyText.trim()) return;
+
+    const repText = replyText;
+    setReplyText('');
+
+    const foundTarget = supportUsersList.find(u => u.id === selectedChatUserId);
+
+    const newReply = {
+      id: `rep_${Date.now()}`,
+      senderId: selectedChatUserId, // Mapped to the same selected chat thread
+      senderName: 'แอดมินสูงสุด Poei',
+      text: repText,
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      isFromAdmin: true
+    };
+
+    setSupportHistory(prev => [...prev, newReply]);
+    triggerToast(`ส่งข้อความตอบกลับไปยัง @${foundTarget?.username || 'ลูกค้า'} เรียบร้อยค่ะ!`, 'success');
+  };
 
   // Handle delete user
   const handleDeleteUser = (userId: string) => {
@@ -696,6 +750,146 @@ export default function AdminBackendView({
             </tbody>
           </table>
         </div>
+      </div>
+
+      {/* Real-time Admin Support Chat Desk (ติดต่อแอดมิน - Backstage) */}
+      <div className="bg-white rounded-3xl border border-[#D4AF37]/20 overflow-hidden luxury-shadow font-sans">
+        
+        {/* Support desk header */}
+        <div className="bg-neutral-950 p-6 border-b border-[#D4AF37] flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <MessageSquare className="w-5 h-5 text-gold-400 animate-pulse" />
+              <h2 className="font-serif font-black text-lg text-white">แผงรับสายพูดคุยช่วยเหลือลูกค้า <span className="gold-text">Support Chat Console</span></h2>
+            </div>
+            <p className="text-[10px] text-neutral-400 uppercase tracking-widest leading-relaxed">
+              ตอบกลับข้อความจริง คุยโทรเลข ตรวจสอบปัญหา และให้สิทธิพิเศษแก่ผู้ใช้งาน/ผู้เยี่ยมชมที่กดปุ่มติดต่อผู้ดูแล
+            </p>
+          </div>
+          <span className="px-3.5 py-1.5 rounded-full bg-gold-450/10 border border-gold-400/30 text-gold-400 text-[10px] font-bold uppercase tracking-wider">
+            คิวข้อความคงค้าง: {supportUsersList.length} หัวข้อสนทนา
+          </span>
+        </div>
+
+        {supportUsersList.length === 0 ? (
+          <div className="p-16 text-center space-y-3">
+            <div className="w-12 h-12 rounded-full bg-neutral-50 border border-neutral-150 flex items-center justify-center mx-auto text-neutral-400">
+              <MessageSquare className="w-6 h-6" />
+            </div>
+            <p className="text-xs font-semibold text-neutral-500">ในขณะนี้ยังไม่มีผู้ใช้งานท่านใดส่งประวัติคำถามขอเปิดแชตเข้ามาค่ะ</p>
+            <p className="text-[10px] text-neutral-400">เมื่อมีสมาชิกกดปุ่ม "ติดต่อแอดมิน" หน้าจอจะแสดงหน้าและเชื่อมโยงข้อมูลแบบเรียลไทม์ทันทีค่ะ</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 min-h-[460px]">
+            
+            {/* Left sidebar: list of user inquiries */}
+            <div className="md:col-span-1 border-r border-neutral-100 bg-neutral-50/50 p-4 space-y-3 overflow-y-auto max-h-[500px]">
+              <span className="block text-[9px] uppercase tracking-widest text-[#B8860B] font-bold mb-2">บทสนทนาที่เข้ามา</span>
+              
+              <div className="space-y-2">
+                {supportUsersList.map((usr: any) => {
+                  const isActive = selectedChatUserId === usr.id;
+                  return (
+                    <button
+                      key={usr.id}
+                      onClick={() => setSelectedChatUserId(usr.id)}
+                      className={`w-full flex items-center justify-between p-3.5 rounded-2xl border text-left transition-all ${
+                        isActive
+                          ? 'bg-neutral-950 text-white border-neutral-950 shadow-md'
+                          : 'bg-white text-neutral-800 border-neutral-150 hover:bg-gold-50/20'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <img
+                          src={usr.avatar}
+                          alt={usr.username}
+                          className="w-10 h-10 rounded-full border border-neutral-200 object-cover shrink-0"
+                        />
+                        <div className="min-w-0">
+                          <h4 className="text-xs font-semibold truncate max-w-[130px]">@{usr.username}</h4>
+                          <span className={`inline-block text-[8px] px-1.5 py-0.2 rounded font-bold uppercase ${
+                            usr.role === 'Admin' ? 'bg-indigo-150 text-indigo-800' :
+                            usr.role === 'Brand' ? 'bg-amber-150 text-amber-800' :
+                            usr.role === 'Influencer' ? 'bg-emerald-150 text-emerald-800' : 'bg-neutral-200 text-neutral-700'
+                          }`}>
+                            {usr.role === 'Guest' ? 'ผู้เยี่ยมชม' : usr.role}
+                          </span>
+                          <p className="text-[10px] text-neutral-400 truncate mt-0.5 max-w-[140px] font-light">
+                            {usr.lastMessage}
+                          </p>
+                        </div>
+                      </div>
+                      <span className="text-[8px] text-neutral-400 self-start mt-0.5">{usr.lastTime}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Right: Active chat viewport */}
+            <div className="md:col-span-2 flex flex-col justify-between bg-white max-h-[500px]">
+              
+              {/* Target recipient bar */}
+              <div className="p-4 border-b border-neutral-100 flex items-center gap-3 bg-neutral-50/20 shrink-0">
+                <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></div>
+                <div className="text-xs">
+                  <span className="text-neutral-400 font-light">กำลังพูดคุยกับ: </span>
+                  <span className="font-bold text-neutral-900">
+                    @{supportUsersList.find(u => u.id === selectedChatUserId)?.username || selectedChatUserId}
+                  </span>
+                </div>
+              </div>
+
+              {/* Message log */}
+              <div className="flex-1 overflow-y-auto p-5 space-y-4 bg-zinc-50/30">
+                {activeChatMessages.length === 0 ? (
+                  <p className="text-xs italic text-neutral-400 text-center py-10">ไม่มีรายละเอียดข้อความในห้องนี้ค่ะ</p>
+                ) : (
+                  activeChatMessages.map((msg: any) => (
+                    <div
+                      key={msg.id || Math.random()}
+                      className={`flex flex-col ${msg.isFromAdmin ? 'items-end' : 'items-start'}`}
+                    >
+                      <span className="text-[9px] text-neutral-400 mb-0.5 px-1">
+                        {msg.isFromAdmin ? 'แอดมินสูงสุด Poei (คุณ)' : msg.senderName} • {msg.time}
+                      </span>
+                      <div
+                        className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-xs shadow-xs leading-relaxed ${
+                          msg.isFromAdmin
+                            ? 'bg-neutral-950 text-white rounded-br-none border border-gold-400/20'
+                            : 'bg-white text-neutral-800 border border-neutral-200 rounded-bl-none'
+                        }`}
+                      >
+                        {msg.text}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Chat action form */}
+              <form onSubmit={handleSendReply} className="p-4 border-t border-neutral-100 flex gap-2 shrink-0 bg-white">
+                <input
+                  type="text"
+                  value={replyText}
+                  onChange={e => setReplyText(e.target.value)}
+                  placeholder={`พิมพ์ข้อความตอบกลับหา @${supportUsersList.find(u => u.id === selectedChatUserId)?.username || 'พาร์ทเนอร์'}...`}
+                  className="flex-1 px-4 py-2 text-xs border border-neutral-200 rounded-full outline-none focus:border-[#D4AF37]"
+                />
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-neutral-950 hover:bg-neutral-900 text-gold-300 hover:text-white rounded-full text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer"
+                >
+                  <span>ส่งข้อความ</span>
+                  <Send className="w-3.5 h-3.5" />
+                </button>
+              </form>
+
+            </div>
+
+          </div>
+        )}
+
       </div>
 
     </div>
