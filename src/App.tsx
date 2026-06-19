@@ -280,6 +280,7 @@ export default function App() {
           <ProfileView
             currentUser={currentUser}
             setCurrentUser={setCurrentUser}
+            setAllUsers={setAllUsers}
             triggerToast={triggerToast}
           />
         )}

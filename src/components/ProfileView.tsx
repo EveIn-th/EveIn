@@ -5,12 +5,14 @@ import { User as UserType } from '../types';
 interface ProfileViewProps {
   currentUser: UserType | null;
   setCurrentUser: React.Dispatch<React.SetStateAction<UserType | null>>;
+  setAllUsers: React.Dispatch<React.SetStateAction<UserType[]>>;
   triggerToast: (msg: string, status: 'success' | 'info' | 'warning') => void;
 }
 
 export default function ProfileView({
   currentUser,
   setCurrentUser,
+  setAllUsers,
   triggerToast,
 }: ProfileViewProps) {
   
@@ -86,7 +88,10 @@ export default function ProfileView({
     };
 
     setCurrentUser(updatedUser);
-    triggerToast('บันทึกปรับแก้ไขประวัติบัญชีสำเร็จเรียบร้อยแล้วค่ะ!', 'success');
+    setAllUsers(prev => 
+      prev.map(u => u.id === updatedUser.id ? updatedUser : u)
+    );
+    triggerToast('บันทึกปรับแก้ไขประวัติบัญชีสำเร็จเรียบร้อยแล้วค่ะ! ข้อมูลของท่านได้รับการซิงก์เข้าระบบจัดการหลังบ้านแล้ว', 'success');
   };
 
   return (
