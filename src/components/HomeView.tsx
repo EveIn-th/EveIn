@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Sparkles, ArrowUpRight, Award, Trophy, Users, ShieldCheck, HeartHandshake, Eye } from 'lucide-react';
+import { Sparkles, ArrowUpRight, Award, Trophy, Users, ShieldCheck, HeartHandshake, Eye, MessageSquare } from 'lucide-react';
 
 interface HomeViewProps {
   onNavigate: (tab: string) => void;
@@ -95,6 +95,13 @@ export default function HomeView({ onNavigate, onJoinUs, isLoggedIn }: HomeViewP
                 เข้าสู่หน้าแดชบอร์ดของฉัน
               </button>
             )}
+            <button
+              onClick={() => window.dispatchEvent(new CustomEvent('open-evein-chat'))}
+              className="px-8 py-4 rounded-full text-xs font-bold uppercase tracking-widest bg-amber-500/5 hover:bg-amber-500/10 text-amber-700 hover:text-amber-800 border border-amber-600/35 hover:border-amber-600/60 transition-all duration-300 cursor-pointer flex items-center justify-center gap-1.5 font-prompt"
+            >
+              <MessageSquare className="w-4 h-4 text-[#D4AF37] animate-pulse" />
+              <span>คุยกับแอดมินทีมงาน</span>
+            </button>
           </div>
         </div>
       </section>

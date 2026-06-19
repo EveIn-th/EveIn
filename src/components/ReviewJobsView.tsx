@@ -313,6 +313,55 @@ export default function ReviewJobsView({
 
         {/* Results layout showing job lists */}
         <div className="lg:col-span-3 space-y-6">
+
+          {/* Featured Spotlight: โพสต์รับสมัครงานล่าสุด (Job Postings Spotlight) */}
+          <div className="bg-neutral-950 p-6 rounded-3xl border border-[#D4AF37] space-y-4 shadow-xl">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-gold-400 animate-pulse" />
+              <span className="text-[10px] font-bold tracking-[0.2em] text-[#D4AF37] uppercase">PREMIUM REC: โพสต์รับสมัครงานที่โดดเด่นและล่าสุด (Recruitment Spotlight)</span>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {jobs.filter(j => j.isOpen).slice(0, 3).map((job) => {
+                const applied = checkHasApplied(job.id);
+                return (
+                  <div key={`spot-${job.id}`} className="bg-neutral-900 p-4 rounded-2xl border border-neutral-800 flex flex-col justify-between hover:border-gold-400 transition-all">
+                    <div>
+                      <div className="flex justify-between items-center text-[9px] text-[#B8860B] font-bold">
+                        <span>{job.category}</span>
+                        <span>฿{job.budget?.toLocaleString()}</span>
+                      </div>
+                      <h4 className="text-xs font-semibold text-white mt-1.5 truncate">{job.title}</h4>
+                      <p className="text-[10px] text-[#b4b4b4] line-clamp-2 mt-1 font-light leading-snug">{job.description}</p>
+                    </div>
+                    <div className="mt-3 pt-2.5 border-t border-neutral-800 flex justify-between items-center text-[10px]">
+                      <span className="text-neutral-500">@{job.brandName}</span>
+                      {applied ? (
+                        <span className="text-gold-400 font-bold">สมัครแล้ว</span>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            if (!currentUser) {
+                              triggerToast('กรุณาเข้าสู่ระบบก่อนร่วมสมัครค่ะ', 'warning');
+                              setShowAuthModal('login');
+                              return;
+                            }
+                            onApplyForJob(job.id);
+                          }}
+                          className="px-2.5 py-1 bg-[#D4AF37] text-neutral-950 hover:bg-gold-500 rounded-lg font-bold text-[9px] transition-colors cursor-pointer"
+                        >
+                          สมัครด่วน
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+              {jobs.filter(j => j.isOpen).length === 0 && (
+                <p className="col-span-full text-center text-xs text-neutral-500 italic py-4">ขณะนี้ยังไม่มีรับสมัครแบบด่วนพิเศษค่ะ</p>
+              )}
+            </div>
+          </div>
+
           <div className="flex justify-between items-center text-xs text-neutral-400">
             <span>พบรายการงานจ้างทั้งหมด {filteredJobs.length} รายการ</span>
             <button
@@ -464,6 +513,37 @@ export default function ReviewJobsView({
                         )}
 
                       </div>
+
+                      {currentUser?.role === 'Admin' && (
+                        <div className="pt-2 px-3 pb-2.5 bg-red-50/50 rounded-2xl border border-red-150 flex justify-between items-center gap-2 mt-4">
+                          <span className="text-[10px] font-extrabold text-red-650 flex items-center gap-1 font-prompt">
+                            <Sparkles className="w-3.5 h-3.5" />
+                            <span>สิทธิ์แอดมิน</span>
+                          </span>
+                          <div className="flex gap-1.5">
+                            <button
+                              onClick={() => {
+                                setJobs(prev => prev.map(j => j.id === job.id ? { ...j, isOpen: !j.isOpen } : j));
+                                triggerToast(`เปลี่ยนสถานะรับสมัครแคมเปญ "${job.title}" เรียบร้อยค่ะ`, 'success');
+                              }}
+                              className="px-2.5 py-1 text-[9px] font-bold bg-neutral-900 border border-neutral-300 rounded-lg text-white hover:bg-neutral-800 cursor-pointer"
+                            >
+                              {job.isOpen ? 'ปิดรับสมัคร' : 'เปิดรับสมัคร'}
+                            </button>
+                            <button
+                              onClick={() => {
+                                if (window.confirm(`ยืนยันการลบแคมเปญจ้างงานด่วน "${job.title}" ออกจากระบบหรือไม่?`)) {
+                                  setJobs(prev => prev.filter(j => j.id !== job.id));
+                                  triggerToast(`ลบข้อมูลโพสต์แคมเปญ เรียบร้อยค่ะ`, 'success');
+                                }
+                              }}
+                              className="px-2.5 py-1 text-[9px] font-bold bg-red-600 hover:bg-red-700 rounded-lg text-white cursor-pointer"
+                            >
+                              ลบงานโพสต์
+                            </button>
+                          </div>
+                        </div>
+                      )}
 
                     </div>
                   </div>

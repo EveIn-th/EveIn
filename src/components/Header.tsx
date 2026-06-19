@@ -126,6 +126,18 @@ export default function Header({
                 <span>ตัวจัดการเว็บไซต์</span>
               </button>
             )}
+
+            {/* General Contact Admin Support Button */}
+            <button
+              onClick={() => {
+                window.dispatchEvent(new CustomEvent('open-evein-chat'));
+              }}
+              className="flex items-center gap-1.5 px-4.5 py-2 text-xs font-bold text-amber-700 bg-amber-500/5 hover:bg-amber-500/10 hover:text-amber-800 border border-amber-600/20 hover:border-amber-600/40 rounded-full transition-all cursor-pointer font-prompt"
+              title="ติดต่อทีมพัฒนาดูแลระบบ 24 ชั่วโมง"
+            >
+              <MessageSquare className="w-3.5 h-3.5 text-amber-500 animate-pulse" />
+              <span>ติดต่อแอดมิน</span>
+            </button>
           </nav>
 
           {/* Right Accessories */}
@@ -311,7 +323,22 @@ export default function Header({
               </>
             )}
 
-            {!currentUser && (
+            {/* Contact Admin support options in mobile drawer */}
+          <button
+            onClick={() => {
+              window.dispatchEvent(new CustomEvent('open-evein-chat'));
+              setMobileMenuOpen(false);
+            }}
+            className="w-full flex items-center justify-between px-4 py-3 rounded-lg text-sm font-bold tracking-wide transition-all border border-amber-600/30 bg-amber-50 text-amber-800 hover:bg-amber-100"
+          >
+            <div className="flex items-center gap-2">
+              <MessageSquare className="w-4 h-4 text-amber-500 shrink-0" />
+              <span>ติดต่อฝ่ายช่วยเหลือแอดมิน</span>
+            </div>
+            <Sparkles className="w-4 h-4 text-amber-500 animate-pulse" />
+          </button>
+
+          {!currentUser && (
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setShowAuthModal('login')}
@@ -388,6 +415,21 @@ export default function Header({
               <Sparkles className="w-4 h-4 text-[#D4AF37] animate-pulse" />
             </button>
           )}
+
+          {/* Contact Admin support options in mobile drawer */}
+          <button
+            onClick={() => {
+              window.dispatchEvent(new CustomEvent('open-evein-chat'));
+              setMobileMenuOpen(false);
+            }}
+            className="w-full flex items-center justify-between px-4 py-3 rounded-lg text-sm font-bold tracking-wide transition-all border border-amber-600/30 bg-amber-50 text-amber-800 hover:bg-amber-100 cursor-pointer"
+          >
+            <div className="flex items-center gap-2 font-prompt">
+              <MessageSquare className="w-4 h-4 text-amber-500 shrink-0" />
+              <span>ติดต่อฝ่ายช่วยเหลือแอดมิน</span>
+            </div>
+            <Sparkles className="w-4 h-4 text-amber-500 animate-pulse" />
+          </button>
           
           {!currentUser && (
             <div className="grid grid-cols-2 gap-2 pt-3 border-t border-neutral-100">

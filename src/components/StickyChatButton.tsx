@@ -50,6 +50,14 @@ export default function StickyChatButton({
     }
   }, [visibleMessages, isOpen]);
 
+  useEffect(() => {
+    const handleOpenChat = () => setIsOpen(true);
+    window.addEventListener('open-evein-chat', handleOpenChat);
+    return () => {
+      window.removeEventListener('open-evein-chat', handleOpenChat);
+    };
+  }, []);
+
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputText.trim()) return;

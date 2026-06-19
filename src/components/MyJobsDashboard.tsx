@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Briefcase, CheckCircle2, XCircle, Clock, Link as LinkIcon, Send, Sparkles, Check, ChevronRight, AlertCircle, RefreshCw, QrCode, FileText, Upload, Plus, Trash2, Edit, MessageSquare, X } from 'lucide-react';
+import { Briefcase, CheckCircle2, XCircle, Clock, Link as LinkIcon, Send, Sparkles, Check, ChevronRight, AlertCircle, RefreshCw, QrCode, FileText, Upload, Plus, Trash2, Edit, MessageSquare, X, Shield } from 'lucide-react';
 import { User, JobItem, JobApplication } from '../types';
 
 interface MyJobsDashboardProps {
@@ -60,7 +60,12 @@ export default function MyJobsDashboard({
     );
   }
 
-  const isBrand = currentUser.role === 'Brand';
+  // Admin role gets a dedicated local state toggle to switch viewpoints between Brand and Influencer
+  const [adminViewRole, setAdminViewRole] = useState<'Brand' | 'Influencer'>(
+    currentUser.role === 'Admin' ? 'Brand' : (currentUser.role === 'Brand' ? 'Brand' : 'Influencer')
+  );
+
+  const isBrand = currentUser.role === 'Admin' ? (adminViewRole === 'Brand') : (currentUser.role === 'Brand');
 
   // State actions helper
   const triggerSystemNotification = (title: string, message: string) => {
@@ -236,6 +241,49 @@ export default function MyJobsDashboard({
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-10 animate-in fade-in duration-300">
       
+      {/* Super Admin Control bar override */}
+      {currentUser.role === 'Admin' && (
+        <div className="bg-neutral-900 p-5 rounded-3xl border border-[#D4AF37] flex flex-col md:flex-row justify-between items-center gap-4 shadow-xl">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-full bg-amber-500/10 border border-amber-500/20">
+              <Shield className="w-5 h-5 text-amber-500 animate-pulse" />
+            </div>
+            <div>
+              <span className="text-xs font-bold text-white uppercase tracking-wider block">สิทธิ์แอดมินสูงสุด (Super Admin/Manager Dashboard Controls)</span>
+              <p className="text-[10px] text-neutral-400 font-prompt">คุณสามารถจำลองสิทธิ์ คัดเลือกแคมเปญ ผ่านงาน หรืออนุมัติการจ่ายเงินอย่างอิสระโดยไร้ข้อจำกัด (Full Access Control)</p>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => {
+                setAdminViewRole('Brand');
+                triggerToast('สลับชุดข้อมูลแดชบอร์ดเข้าสู่: "มุมมองผู้จ้าง/แบรนด์" เรียบร้อยค่ะ', 'info');
+              }}
+              className={`px-4 py-2 border rounded-xl text-xs font-bold font-prompt transition-all duration-250 cursor-pointer ${
+                adminViewRole === 'Brand'
+                  ? 'bg-amber-600 border-amber-500 text-white shadow-md'
+                  : 'bg-neutral-950 border-neutral-800 text-neutral-400 hover:text-white'
+              }`}
+            >
+              มุมมองผู้จ้างแบรนด์ (Brand view)
+            </button>
+            <button
+              onClick={() => {
+                setAdminViewRole('Influencer');
+                triggerToast('สลับชุดข้อมูลแดชบอร์ดเข้าสู่: "มุมมองผู้สมัคร/อินฟลูฯ" เรียบร้อยค่ะ', 'info');
+              }}
+              className={`px-4 py-2 border rounded-xl text-xs font-bold font-prompt transition-all duration-250 cursor-pointer ${
+                adminViewRole === 'Influencer'
+                  ? 'bg-emerald-600 border-emerald-500 text-white shadow-md'
+                  : 'bg-neutral-950 border-neutral-800 text-neutral-400 hover:text-white'
+              }`}
+            >
+              มุมมองอินฟลูเอนเซอร์ (Influencer view)
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* 1. Profile Dashboard Header Summary */}
       <div className="bg-neutral-950 p-6 sm:p-8 rounded-3xl border border-gold-400 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div className="flex items-center gap-4">
@@ -247,7 +295,13 @@ export default function MyJobsDashboard({
           <div>
             <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-gold-500/10 border border-gold-400/20 text-[10px] font-bold text-gold-400 uppercase">
               <Sparkles className="w-3 h-3 text-gold-400" />
-              <span>{currentUser.role === 'Brand' ? 'แบรนด์ผู้ว่าจ้างระดับสูง' : 'ครีเอเตอร์กิตติมศักดิ์'}</span>
+              <span>
+                {currentUser.role === 'Admin'
+                  ? `ระบบแอดมินหลัก (โหมดจำลอง: ${adminViewRole === 'Brand' ? 'แบรนด์ผู้ว่าชื่นชอบ' : 'อินฟลูฯ กิตติมศักดิ์'})`
+                  : currentUser.role === 'Brand'
+                  ? 'แบรนด์ผู้ว่าจ้างระดับสูง'
+                  : 'ครีเอเตอร์กิตติมศักดิ์'}
+              </span>
             </div>
             <h1 className="font-serif text-xl sm:text-2xl font-bold text-white tracking-wide mt-1.5">
               {currentUser.brandName || currentUser.realName || currentUser.username}
@@ -287,10 +341,10 @@ export default function MyJobsDashboard({
           {/* 4 Tabs switcher */}
           <div className="flex border-b border-neutral-200 gap-2 overflow-x-auto pb-px">
             {[
-              { id: 'applied', label: '1. งานที่ยื่นคำขอ (Applied)', count: applications.filter(a => a.influencerId === currentUser.id && a.status === 'Applied').length },
-              { id: 'progress', label: '2. กำลังทำ/รอตรวจ (In Progress)', count: applications.filter(a => a.influencerId === currentUser.id && a.status === 'In Progress').length },
-              { id: 'completed', label: '3. ทำเสร็จแล้ว (Completed)', count: applications.filter(a => a.influencerId === currentUser.id && a.status === 'Completed').length },
-              { id: 'cancelled', label: '4. งานที่ยกเลิก (Cancelled)', count: applications.filter(a => a.influencerId === currentUser.id && a.status === 'Cancelled').length }
+              { id: 'applied', label: '1. งานที่ยื่นคำขอ (Applied)', count: applications.filter(a => (currentUser.role === 'Admin' ? true : a.influencerId === currentUser.id) && a.status === 'Applied').length },
+              { id: 'progress', label: '2. กำลังทำ/รอตรวจ (In Progress)', count: applications.filter(a => (currentUser.role === 'Admin' ? true : a.influencerId === currentUser.id) && a.status === 'In Progress').length },
+              { id: 'completed', label: '3. ทำเสร็จแล้ว (Completed)', count: applications.filter(a => (currentUser.role === 'Admin' ? true : a.influencerId === currentUser.id) && a.status === 'Completed').length },
+              { id: 'cancelled', label: '4. งานที่ยกเลิก (Cancelled)', count: applications.filter(a => (currentUser.role === 'Admin' ? true : a.influencerId === currentUser.id) && a.status === 'Cancelled').length }
             ].map((t) => (
               <button
                 key={t.id}
@@ -309,7 +363,7 @@ export default function MyJobsDashboard({
           {/* Tab contents list */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {applications
-              .filter(app => app.influencerId === currentUser.id && app.status === (influencerTab === 'applied' ? 'Applied' : influencerTab === 'progress' ? 'In Progress' : influencerTab === 'completed' ? 'Completed' : 'Cancelled'))
+              .filter(app => (currentUser.role === 'Admin' ? true : app.influencerId === currentUser.id) && app.status === (influencerTab === 'applied' ? 'Applied' : influencerTab === 'progress' ? 'In Progress' : influencerTab === 'completed' ? 'Completed' : 'Cancelled'))
               .map((app) => (
                 <div
                   key={app.id}
@@ -408,7 +462,7 @@ export default function MyJobsDashboard({
                   </div>
                 </div>
               ))}
-            {applications.filter(app => app.influencerId === currentUser.id && app.status === (influencerTab === 'applied' ? 'Applied' : influencerTab === 'progress' ? 'In Progress' : influencerTab === 'completed' ? 'Completed' : 'Cancelled')).length === 0 && (
+            {applications.filter(app => (currentUser.role === 'Admin' ? true : app.influencerId === currentUser.id) && app.status === (influencerTab === 'applied' ? 'Applied' : influencerTab === 'progress' ? 'In Progress' : influencerTab === 'completed' ? 'Completed' : 'Cancelled')).length === 0 && (
               <div className="col-span-full py-12 text-center bg-white border border-dashed border-neutral-200 rounded-2xl text-xs text-neutral-400">
                 ไม่มีประวัติงานแคมเปญตามแท็บที่เลือกในขณะนี้ค่ะ
               </div>
@@ -435,7 +489,7 @@ export default function MyJobsDashboard({
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               {jobs
-                .filter(job => job.createdBy === currentUser.id)
+                .filter(job => currentUser.role === 'Admin' ? true : job.createdBy === currentUser.id)
                 .map((job) => (
                   <div
                     key={job.id}
@@ -505,7 +559,7 @@ export default function MyJobsDashboard({
               >
                 <span>แท็บ 1 [คำขอสมัคร]</span>
                 <span className="px-1.5 py-0.5 rounded-full bg-neutral-205 text-[9px] text-neutral-600">
-                  {applications.filter(a => a.brandId === currentUser.id && a.status === 'Applied').length}
+                  {applications.filter(a => (currentUser.role === 'Admin' ? true : a.brandId === currentUser.id) && a.status === 'Applied').length}
                 </span>
               </button>
               <button
@@ -516,18 +570,18 @@ export default function MyJobsDashboard({
               >
                 <span>แท็บ 2 [อินฟลูส่งงาน]</span>
                 <span className="px-1.5 py-0.5 rounded-full bg-neutral-205 text-[9px] text-neutral-600">
-                  {applications.filter(a => a.brandId === currentUser.id && a.status === 'In Progress' && a.submittedLinks && a.submittedLinks.length > 0 && !a.isApproved).length}
+                  {applications.filter(a => (currentUser.role === 'Admin' ? true : a.brandId === currentUser.id) && a.status === 'In Progress' && a.submittedLinks && a.submittedLinks.length > 0 && !a.isApproved).length}
                 </span>
               </button>
               <button
                 onClick={() => setBrandSubTab('payments')}
                 className={`flex items-center gap-1.5 px-4 py-2 rounded-lg font-semibold cursor-pointer ${
-                  brandSubTab === 'payments' ? 'bg-white text-neutral-900 shadow-sm font-bold' : 'text-neutral-500 hover:text-neutral-800'
+                  brandSubTab === 'payments' ? 'bg-[#957c2a]/20 border border-[#D4AF37]/45 text-neutral-900 shadow-sm font-bold' : 'text-neutral-500 hover:text-neutral-800'
                 }`}
               >
                 <span>แท็บ 3 [รอชำระเงินให้อินฟลู]</span>
                 <span className="px-1.5 py-0.5 rounded-full bg-neutral-205 text-[9px] text-neutral-600">
-                  {applications.filter(a => a.brandId === currentUser.id && ((a.status === 'In Progress' && a.isApproved) || a.paymentStatus === 'Verifying')).length}
+                  {applications.filter(a => (currentUser.role === 'Admin' ? true : a.brandId === currentUser.id) && ((a.status === 'In Progress' && a.isApproved) || a.paymentStatus === 'Verifying')).length}
                 </span>
               </button>
             </div>
@@ -538,7 +592,7 @@ export default function MyJobsDashboard({
               {/* BRAND TAB 1: Applications reviewing */}
               {brandSubTab === 'applications' && (
                 applications
-                  .filter(app => app.brandId === currentUser.id && app.status === 'Applied')
+                  .filter(app => (currentUser.role === 'Admin' ? true : app.brandId === currentUser.id) && app.status === 'Applied')
                   .map((app) => (
                     <div key={app.id} className="p-6 bg-white rounded-2xl border border-neutral-150 space-y-4">
                       <div>
@@ -581,7 +635,7 @@ export default function MyJobsDashboard({
               {/* BRAND TAB 2: inspecting submitted social media links */}
               {brandSubTab === 'submissions' && (
                 applications
-                  .filter(app => app.brandId === currentUser.id && app.status === 'In Progress' && app.submittedLinks && app.submittedLinks.length > 0 && !app.isApproved)
+                  .filter(app => (currentUser.role === 'Admin' ? true : app.brandId === currentUser.id) && app.status === 'In Progress' && app.submittedLinks && app.submittedLinks.length > 0 && !app.isApproved)
                   .map((app) => (
                     <div key={app.id} className="p-6 bg-white rounded-2xl border border-neutral-150 space-y-4">
                       <div>
@@ -635,7 +689,7 @@ export default function MyJobsDashboard({
               {/* BRAND TAB 3: Invoice settlement payments */}
               {brandSubTab === 'payments' && (
                 applications
-                  .filter(app => app.brandId === currentUser.id && ((app.status === 'In Progress' && app.isApproved) || app.paymentStatus === 'Verifying'))
+                  .filter(app => (currentUser.role === 'Admin' ? true : app.brandId === currentUser.id) && ((app.status === 'In Progress' && app.isApproved) || app.paymentStatus === 'Verifying'))
                   .map((app) => (
                     <div key={app.id} className="p-6 bg-white rounded-2xl border border-neutral-150 space-y-4">
                       <div className="flex justify-between items-start">
@@ -708,17 +762,17 @@ export default function MyJobsDashboard({
               )}
 
               {/* Conditional empty state handlers for brand */}
-              {brandSubTab === 'applications' && applications.filter(a => a.brandId === currentUser.id && a.status === 'Applied').length === 0 && (
+              {brandSubTab === 'applications' && applications.filter(a => (currentUser.role === 'Admin' ? true : a.brandId === currentUser.id) && a.status === 'Applied').length === 0 && (
                 <div className="col-span-full py-12 text-center bg-white border border-dashed border-neutral-200 rounded-2xl text-xs text-neutral-400">
                   ไม่มีผู้ยื่นสมัครเข้าร่วมงานใหม่ในขณะนี้ค่ะ
                 </div>
               )}
-              {brandSubTab === 'submissions' && applications.filter(a => a.brandId === currentUser.id && a.status === 'In Progress' && a.submittedLinks && a.submittedLinks.length > 0 && !a.isApproved).length === 0 && (
+              {brandSubTab === 'submissions' && applications.filter(a => (currentUser.role === 'Admin' ? true : a.brandId === currentUser.id) && a.status === 'In Progress' && a.submittedLinks && a.submittedLinks.length > 0 && !a.isApproved).length === 0 && (
                 <div className="col-span-full py-12 text-center bg-white border border-dashed border-neutral-200 rounded-2xl text-xs text-neutral-400">
                   ไม่มีลิงก์รีวิวที่ส่งเข้ามาใหม่ให้ตรวจสอบในกระบวนการผลิตงานค่ะ
                 </div>
               )}
-              {brandSubTab === 'payments' && applications.filter(a => a.brandId === currentUser.id && ((a.status === 'In Progress' && a.isApproved) || a.paymentStatus === 'Verifying')).length === 0 && (
+              {brandSubTab === 'payments' && applications.filter(a => (currentUser.role === 'Admin' ? true : a.brandId === currentUser.id) && ((a.status === 'In Progress' && a.isApproved) || a.paymentStatus === 'Verifying')).length === 0 && (
                 <div className="col-span-full py-12 text-center bg-white border border-dashed border-neutral-200 rounded-2xl text-xs text-neutral-400">
                   ไม่มีธุรกรรมโอนเงินหรือตรวจสอบบิลสลิปที่รอดำเนินการชำระค่ะ
                 </div>
