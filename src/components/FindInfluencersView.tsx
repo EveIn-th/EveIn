@@ -24,8 +24,12 @@ export default function FindInfluencersView({
   const [filterAge, setFilterAge] = useState('ทั้งหมด');
   const [filterFollowersTier, setFilterFollowersTier] = useState('ทั้งหมด');
   const [filterPlatform, setFilterPlatform] = useState('ทั้งหมด');
+  
+  // Custom followers ranges
+  const [minFollowers, setMinFollowers] = useState('');
+  const [maxFollowersInput, setMaxFollowersInput] = useState('');
 
-  // Selected influencer for VIP Profile Overview (with sensitive PDPA blocks!)
+  // Selected influencer for VIP Profile Overview
   const [selectedInfluencer, setSelectedInfluencer] = useState<User | null>(null);
 
   // Filter implementation
@@ -46,12 +50,27 @@ export default function FindInfluencersView({
       if (filterAge === '45-60' && (inf.age < 45 || inf.age > 60)) return false;
     }
 
-    // 4. Followers tier filter
+    // Determine the highest follower count among all socials of this user
+    const maxLocalFollowers = Math.max(...(inf.socials || []).map(s => s.followers), 0);
+
+    // 4. Followers tier filter (Multi-level search)
     if (filterFollowersTier !== 'ทั้งหมด') {
-      const maxFollowers = Math.max(...(inf.socials || []).map(s => s.followers), 0);
-      if (filterFollowersTier === 'mega' && maxFollowers < 500000) return false;
-      if (filterFollowersTier === 'macro' && (maxFollowers < 200000 || maxFollowers >= 500000)) return false;
-      if (filterFollowersTier === 'micro' && maxFollowers >= 20000) return false; // wait, micro < 200000, let's just make clean tiers
+      if (filterFollowersTier === 'nano' && (maxLocalFollowers < 1000 || maxLocalFollowers > 10000)) return false;
+      if (filterFollowersTier === 'micro' && (maxLocalFollowers < 10000 || maxLocalFollowers > 50000)) return false;
+      if (filterFollowersTier === 'mid' && (maxLocalFollowers < 50000 || maxLocalFollowers > 100000)) return false;
+      if (filterFollowersTier === 'macro' && (maxLocalFollowers < 100000 || maxLocalFollowers > 300000)) return false;
+      if (filterFollowersTier === 'premium_macro' && (maxLocalFollowers < 300000 || maxLocalFollowers > 1000000)) return false;
+      if (filterFollowersTier === 'mega' && maxLocalFollowers < 1000000) return false;
+    }
+
+    // Custom followers inputs
+    if (minFollowers.trim() !== '') {
+      const minVal = parseInt(minFollowers);
+      if (!isNaN(minVal) && maxLocalFollowers < minVal) return false;
+    }
+    if (maxFollowersInput.trim() !== '') {
+      const maxVal = parseInt(maxFollowersInput);
+      if (!isNaN(maxVal) && maxLocalFollowers > maxVal) return false;
     }
 
     // 5. platform filter
@@ -96,29 +115,9 @@ export default function FindInfluencersView({
               ค้นหา<span className="font-bold">อินฟลูเอนเซอร์ / KOL</span>
             </h1>
             <p className="text-xs text-neutral-400 font-light uppercase tracking-wider">
-              ค้นพบคอนเซปต์ครีเอเตอร์สายระดับสูง แฟชั่น บิวตี้ ครีมบำรุงผิว และอารมณ์สุนทรีย์ อัปเดตรายชื่อเรียลไทม์
+              ค้นพบคอนเซปต์ครีเอเตอร์สายระดับสูง แฟชั่น บิวตี้ ครีมบำรุงผิว และอารมณ์สุนทรีย์ อัปเดตล่าสุด
             </p>
           </div>
-
-          {/* Quick Search bar */}
-          <div className="relative w-full sm:w-72">
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
-              placeholder="ค้นหาชื่อเล่น หรือประวัติ..."
-              className="w-full pl-9 pr-4 py-2 border rounded-full border-neutral-200 text-xs focus:border-[#D4AF37] outline-none"
-            />
-            <Search className="w-4 h-4 text-neutral-400 absolute left-3 top-2.5" />
-          </div>
-        </div>
-
-        {/* Dynamic Tag info with Privacy Sign */}
-        <div className="p-4 bg-neutral-50 rounded-2xl flex items-start gap-2.5 text-[11px] text-amber-800 border border-neutral-100/60">
-          <ShieldCheck className="w-4.5 h-4.5 text-[#B8860B] shrink-0 mt-0.5" />
-          <span>
-            <strong>นโยบายความเป็นส่วนตัวสูงสุด (Privacy Safeguard):</strong> เพื่อความปลอดภัยสูงสุดของข้อมูลครีเอเตอร์ ทางเรา<strong>ปิดบังอีเมล เบอร์โทรศัพท์ และเลขสมุดธนาคารอย่างเหมาะสม</strong> (ห้ามไม่ให้เปิดเผยบนหน้าแรกนี้) ซึ่งข้อมูลจริงดังกล่าวจะถูกนำส่งไปหลังบ้าน ให้แอดมินใช้ตรวจสอบและตรวจสอบการชำระสลิปเงินเป็นกรณีไปเท่านั้นค่ะ
-          </span>
         </div>
       </div>
 
@@ -143,7 +142,7 @@ export default function FindInfluencersView({
               <option value="ทั้งหมด">ทั้งหมดทุกเพศ</option>
               <option value="Female">ผู้หญิง (Female)</option>
               <option value="Male">ผู้ชาย (Male)</option>
-              <option value="LGBTQ">LGBTQ</option>
+              <option value="LGBTQ">ความหลากหลายทางเพศ (LGBTQ+)</option>
             </select>
           </div>
 
@@ -153,38 +152,68 @@ export default function FindInfluencersView({
             <select
               value={filterAge}
               onChange={e => setFilterAge(e.target.value)}
-              className="w-full px-2.5 py-2 border border-neutral-150 rounded text-xs outline-none bg-white"
+              className="w-full px-2.5 py-2 border border-neutral-150 rounded text-xs outline-none bg-white font-prompt"
             >
-              <option value="ทั้งหมด">ทั้งหมด</option>
-              <option value="18-23">18 - 23 ปี</option>
-              <option value="24-30">24 - 30 ปี</option>
-              <option value="31-45">31 - 45 ปี</option>
-              <option value="45-60">45 - 60 ปี</option>
+              <option value="ทั้งหมด">ทั้งหมดทุกอายุ</option>
+              <option value="18-23">18 - 23 ปี (วัยนักศึกษา/KOL รุ่นใหม่)</option>
+              <option value="24-30">24 - 30 ปี (วัยเริ่มทำงาน/Lifestyle)</option>
+              <option value="31-45">31 - 45 ปี (วัยภูมิฐาน/ความลักชัวรี่)</option>
+              <option value="45-60">45 - 60 ปี (วัยอาวุโสพรีเมียม)</option>
             </select>
           </div>
 
-          {/* Filter: Followers Tier */}
+          {/* Filter: Followers Tier Multi-level */}
           <div className="space-y-1.5">
-            <label className="block text-[10px] font-bold text-neutral-500 uppercase tracking-widest">เทียร์ผู้ติดตาม</label>
+            <label className="block text-[10px] font-bold text-neutral-500 uppercase tracking-widest">ระดับยอดผู้ติดตาม (Followers Tier)</label>
             <select
               value={filterFollowersTier}
               onChange={e => setFilterFollowersTier(e.target.value)}
-              className="w-full px-2.5 py-2 border border-neutral-150 rounded text-xs outline-none bg-white"
+              className="w-full px-2.5 py-2 border border-neutral-150 rounded text-xs outline-none bg-white font-prompt"
             >
-              <option value="ทั้งหมด">ทั้งหมด</option>
-              <option value="mega">ระดับเซเลบ (500K ขึ้นไป)</option>
-              <option value="macro">ระดับมืออาชีพ (200K - 500K)</option>
-              <option value="micro">ระดับไมโครรีวิว (ต่ำกว่า 200K)</option>
+              <option value="ทั้งหมด">ทั้งหมด (ทุกเทียร์)</option>
+              <option value="nano">Nano-Influencer (1,000 - 10,000 ฟอล)</option>
+              <option value="micro">Micro-Influencer (10,000 - 50,000 ฟอล)</option>
+              <option value="mid">Mid-tier Influencer (50,000 - 100,000 ฟอล)</option>
+              <option value="macro">Macro-Influencer (100,000 - 300,000 ฟอล)</option>
+              <option value="premium_macro">Premium Macro (300,000 - 1,000,000 ฟอล)</option>
+              <option value="mega">Mega-Influencer (1,000,000+ ฟอลขึ้นไป)</option>
             </select>
           </div>
 
+          {/* Filter: Custom Followers Range */}
+          <div className="space-y-1.5 pt-2 border-t border-neutral-100">
+            <label className="block text-[10px] font-bold text-neutral-500 uppercase tracking-widest">ช่วงผู้ติดตามระบุเอง</label>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <span className="text-[9px] text-neutral-400">ขั้นต่ำ (คน)</span>
+                <input
+                  type="number"
+                  value={minFollowers}
+                  onChange={e => setMinFollowers(e.target.value)}
+                  placeholder="เช่น 1000"
+                  className="w-full p-2 border border-neutral-200 rounded text-xs outline-none bg-white focus:border-[#D4AF37]"
+                />
+              </div>
+              <div>
+                <span className="text-[9px] text-neutral-400">สูงสุด (คน)</span>
+                <input
+                  type="number"
+                  value={maxFollowersInput}
+                  onChange={e => setMaxFollowersInput(e.target.value)}
+                  placeholder="เช่น 50000"
+                  className="w-full p-2 border border-neutral-200 rounded text-xs outline-none bg-white focus:border-[#D4AF37]"
+                />
+              </div>
+            </div>
+          </div>
+
           {/* Filter: Main Platform */}
-          <div className="space-y-1.5">
+          <div className="space-y-1.5 pt-2 border-t border-neutral-100">
             <label className="block text-[10px] font-bold text-neutral-500 uppercase tracking-widest">แพลตฟอร์มหลัก</label>
             <select
               value={filterPlatform}
               onChange={e => setFilterPlatform(e.target.value)}
-              className="w-full px-2.5 py-2 border border-neutral-150 rounded text-xs outline-none bg-white"
+              className="w-full px-2.5 py-2 border border-[#D4AF37]/20 rounded text-xs outline-none bg-white"
             >
               <option value="ทั้งหมด">ทั้งหมด</option>
               <option value="Tiktok">Tiktok</option>
@@ -207,6 +236,8 @@ export default function FindInfluencersView({
                 setFilterAge('ทั้งหมด');
                 setFilterFollowersTier('ทั้งหมด');
                 setFilterPlatform('ทั้งหมด');
+                setMinFollowers('');
+                setMaxFollowersInput('');
               }}
               className="text-gold-600 hover:underline"
             >
@@ -222,177 +253,211 @@ export default function FindInfluencersView({
               </div>
             ) : (
               filteredInfluencers.map((inf) => (
-              <div
-                key={inf.id}
-                className="bg-white rounded-3xl border border-[#D4AF37]/10 hover:border-[#D4AF37]/35 overflow-hidden flex flex-col justify-between p-6 transition-all duration-500 luxury-shadow"
-              >
-                <div className="space-y-4">
-                  {/* Photo & Handle Info */}
-                  <div className="flex gap-4 items-center">
-                    <img
-                      src={inf.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=250&auto=format&fit=crop'}
-                      alt={inf.username}
-                      className="w-14 h-14 rounded-full border border-[#D4AF37]/30 p-0.5 object-cover shrink-0"
-                    />
+                <div
+                  key={inf.id}
+                  className="bg-white rounded-3xl border border-[#D4AF37]/10 hover:border-[#D4AF37]/35 overflow-hidden flex flex-col justify-between p-6 transition-all duration-500 luxury-shadow"
+                >
+                  <div className="space-y-4">
+                    {/* Photo & Handle Info */}
+                    <div className="flex gap-4 items-center">
+                      <img
+                        src={inf.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=250&auto=format&fit=crop'}
+                        alt={inf.username}
+                        className="w-14 h-14 rounded-full border border-[#D4AF37]/30 p-0.5 object-cover shrink-0"
+                      />
 
-                    <div>
-                      <h3 className="font-sans text-base font-semibold text-neutral-900 flex items-center gap-1.5">
-                        <span>@{inf.username}</span>
-                        <ShieldCheck className="w-4 h-4 text-[#D4AF37]" />
-                      </h3>
-                      <p className="text-[10px] text-neutral-400 font-medium uppercase tracking-wider">
-                        เพศ {inf.gender === 'Female' ? 'หญิง' : inf.gender === 'Male' ? 'ชาย' : 'LGBTQ'} • อายุ {inf.age} ปี • กทม. และปริมณฑล
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* BIO summary */}
-                  <p className="text-xs text-neutral-500 leading-relaxed font-light line-clamp-2">
-                    {inf.bio || 'ครีเอเตอร์แฟชั่นและลักชัวรี่ไลฟ์สไตล์ผู้เป็นพันธมิตรของ EveIn'}
-                  </p>
-
-                  {/* Categories Tags */}
-                  <div className="flex flex-wrap gap-1.5 pt-1">
-                    {(inf.workCategories || ['ความงาม', 'ทั่วไป']).map(cat => (
-                      <span key={cat} className="px-3 py-1 rounded-full bg-neutral-50 text-[9px] text-[#B8860B] font-bold uppercase tracking-wider border border-neutral-100">
-                        {cat}
-                      </span>
-                    ))}
-                  </div>
-
-                  {/* Social media listings with follower targets (Links masked as required!) */}
-                  <div className="space-y-1 bg-neutral-50/50 p-4 rounded-2xl border border-neutral-100">
-                    <span className="block text-[8px] font-bold text-[#B8860B] tracking-widest uppercase mb-1.5">
-                      ช่องทางและสถิติยอดฟอล (ปิดบังลิ้งค์อ้างอิง)
-                    </span>
-                    {(inf.socials || []).map((s, idx) => (
-                      <div key={idx} className="flex justify-between items-center text-[10px] py-1 border-b border-neutral-100 last:border-0 pb-1">
-                        <span className="text-neutral-500 font-semibold flex items-center gap-1">
-                          <span className="w-1.5 h-1.5 bg-[#D4AF37] rounded-full"></span>
-                          {s.platform}
-                        </span>
-                        {/* Masked actual links as requested */}
-                        <a
-                          href="#masked"
-                          onClick={(e) => { e.preventDefault(); triggerToast('เพื่อความปลอดภัยของข้อมูล บัญชีโซเชียลมีเดียจะถูกเปิดให้อ้างอิงแบบปิดสำหรับผู้จ้างงานเท่านั้นค่ะ', 'info'); }}
-                          className="text-neutral-800 hover:text-[#B8860B] font-bold tracking-tight inline-flex items-center gap-1 transition-colors"
-                        >
-                          <span>{s.handle}</span>
-                          <ExternalLink className="w-2.5 h-2.5 text-neutral-400" />
-                        </a>
+                      <div>
+                        <h3 className="font-sans text-base font-semibold text-neutral-900 flex items-center gap-1.5">
+                          <span>@{inf.username}</span>
+                          <ShieldCheck className="w-4 h-4 text-[#D4AF37]" />
+                        </h3>
+                        <p className="text-[10px] text-neutral-400 font-medium uppercase tracking-wider">
+                          เพศ {inf.gender === 'Female' ? 'หญิง' : inf.gender === 'Male' ? 'ชาย' : 'LGBTQ'} • อายุ {inf.age} ปี • กทม. และปริมณฑล
+                        </p>
                       </div>
-                    ))}
+                    </div>
+
+                    {/* BIO summary */}
+                    <p className="text-xs text-neutral-500 leading-relaxed font-light line-clamp-2">
+                      {inf.bio || 'ครีเอเตอร์แฟชั่นและลักชัวรี่ไลฟ์สไตล์ผู้เป็นพันธมิตรของ EveIn'}
+                    </p>
+
+                    {/* Categories Tags */}
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      {(inf.workCategories || ['ความงาม', 'ทั่วไป']).map(cat => (
+                        <span key={cat} className="px-3 py-1 rounded-full bg-neutral-50 text-[9px] text-[#B8860B] font-bold uppercase tracking-wider border border-neutral-100">
+                          {cat}
+                        </span>
+                      ))}
+                    </div>
+
+                    {/* Social media listings with follower targets */}
+                    <div className="space-y-1.5 bg-neutral-50/50 p-4 rounded-2xl border border-neutral-100">
+                      <span className="block text-[8px] font-bold text-[#B8860B] tracking-widest uppercase mb-1.5">
+                        ช่องทางและสถิติผู้ติดตาม
+                      </span>
+                      {(inf.socials || []).map((s, idx) => (
+                        <div key={idx} className="flex justify-between items-center text-[10px] py-1 border-b border-neutral-100 last:border-0 pb-1 flex-wrap gap-1">
+                          <span className="text-neutral-500 font-semibold flex items-center gap-1.5 animate-in fade-in">
+                            <span className="w-1.5 h-1.5 bg-[#D4AF37] rounded-full"></span>
+                            <span className="font-extrabold uppercase text-[9px] bg-neutral-200/60 px-1 py-0.2 rounded">{s.platform}</span>
+                            <span className="text-neutral-900 font-bold">{s.handle}</span>
+                            {s.url ? (
+                              <a
+                                href={s.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-600 hover:text-blue-800 hover:underline inline-flex items-center gap-0.5 text-[9.5px] font-normal"
+                              >
+                                <span>(ลิงก์)</span>
+                                <ExternalLink className="w-2.5 h-2.5" />
+                              </a>
+                            ) : (
+                              <span className="text-neutral-300 text-[9px]">(ไม่มีลิงก์)</span>
+                            )}
+                          </span>
+                          <span className="text-neutral-600 text-[10px] font-semibold font-mono">
+                            {(s.followers || 0).toLocaleString()} ฟอล
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+
                   </div>
 
-                </div>
+                  {/* Control elements */}
+                  <div className="pt-4 mt-6 border-t border-neutral-100 flex gap-2 justify-end">
+                    <button
+                      onClick={() => handleContactChat(inf)}
+                      className="p-2.5 border border-neutral-200 hover:border-[#D4AF37] hover:bg-[#D4AF37]/5 rounded-full transition-all text-neutral-600 hover:text-[#B8860B] cursor-pointer"
+                      title="เริ่มแชทขอข้อตกลงพิเศษ"
+                    >
+                      <MessageSquare className="w-4 h-4" />
+                    </button>
 
-                {/* Control elements */}
-                <div className="pt-4 mt-6 border-t border-neutral-100 flex gap-2 justify-end">
-                  <button
-                    onClick={() => handleContactChat(inf)}
-                    className="p-2.5 border border-neutral-200 hover:border-[#D4AF37] hover:bg-[#D4AF37]/5 rounded-full transition-all text-neutral-600 hover:text-[#B8860B] cursor-pointer"
-                    title="เริ่มแชทขอข้อตกลงพิเศษ"
-                  >
-                    <MessageSquare className="w-4 h-4" />
-                  </button>
-
-                  <button
-                    onClick={() => setSelectedInfluencer(inf)}
-                    className="px-4 py-2.5 rounded-full bg-black text-[#D4AF37] border border-[#D4AF37]/35 text-xs font-bold tracking-wide hover:bg-[#D4AF37] hover:text-white transition-all duration-300 cursor-pointer"
-                  >
-                    ดูข้อมูลอินฟลู
-                  </button>
+                    <button
+                      onClick={() => setSelectedInfluencer(inf)}
+                      className="px-4 py-2.5 rounded-full bg-black text-[#D4AF37] border border-[#D4AF37]/35 text-xs font-bold tracking-wide hover:bg-[#D4AF37] hover:text-white transition-all duration-300 cursor-pointer"
+                    >
+                      ดูข้อมูลอินฟลู
+                    </button>
+                  </div>
                 </div>
-              </div>
-            )))}
+              ))
+            )}
           </div>
         </div>
 
       </div>
 
-      {/* VIP Profile Showcase Modal (Ensuring full privacy of bank, email, etc.) */}
+      {/* VIP Profile Showcase Modal (Strict privacy, only showing requested information) */}
       {selectedInfluencer && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl border border-gold-300 overflow-hidden transform animate-in fade-in-50 zoom-in-95">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in">
+          <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl border-2 border-[#D4AF37] overflow-hidden transform animate-in fade-in-50 zoom-in-95 font-sans">
             
             {/* Elegant Header */}
-            <div className="bg-neutral-950 p-5 border-b border-gold-400 flex justify-between items-center">
+            <div className="bg-neutral-950 p-4 border-b border-[#D4AF37] flex justify-between items-center">
               <div className="flex items-center gap-2">
-                <Sparkles className="w-4.5 h-4.5 text-gold-400" />
-                <span className="font-serif text-sm font-bold text-white tracking-widest uppercase">หนังสือพิจารณาคุณสมบัติครีเอเตอร์</span>
+                <Sparkles className="w-4 h-4 text-[#D4AF37] animate-pulse" />
+                <span className="font-serif text-xs font-bold text-white tracking-widest uppercase">ข้อมูลโปรไฟล์อินฟลูเอนเซอร์</span>
               </div>
               <button
                 onClick={() => setSelectedInfluencer(null)}
-                className="px-3 py-1 bg-neutral-900 border border-neutral-800 text-xs text-neutral-300 hover:text-white rounded-lg hover:bg-neutral-800 transition-colors"
+                className="px-2.5 py-1 bg-neutral-900 border border-neutral-800 text-xs text-neutral-300 hover:text-white rounded-lg hover:bg-neutral-800 transition-colors"
               >
                 ปิด
               </button>
             </div>
-
-            <div className="p-6 space-y-4">
+ 
+            <div className="p-6 space-y-5">
               
-              <div className="flex gap-4 items-center pb-4 border-b border-neutral-100">
+              <div className="flex gap-4 items-center pb-3 border-b border-neutral-100">
                 <img
                   src={selectedInfluencer.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=250&auto=format&fit=crop'}
                   alt={selectedInfluencer.username}
-                  className="w-14 h-14 rounded-full border-2 border-gold-400 object-cover shrink-0"
+                  className="w-14 h-14 rounded-full border-2 border-[#D4AF37] object-cover shrink-0"
                 />
                 <div>
                   <h3 className="font-serif text-base font-bold text-neutral-900">@{selectedInfluencer.username}</h3>
-                  <p className="text-xs text-gold-600 font-medium font-prompt">ผ่านการยืนยันประวัติลักชัวรี่เรียบร้อยแล้วค่ะ</p>
+                  <p className="text-[10px] text-neutral-400 font-medium">เพศ {selectedInfluencer.gender === 'Female' ? 'หญิง' : selectedInfluencer.gender === 'Male' ? 'ชาย' : 'LGBTQ'} • อายุ {selectedInfluencer.age} ปี</p>
                 </div>
               </div>
-
+ 
               {/* BIO */}
               <div className="space-y-1">
-                <span className="text-[9px] uppercase tracking-wider text-neutral-400 font-bold block">ประวัติการทำงานและจุดยืน</span>
-                <p className="text-xs text-neutral-600 leading-relaxed font-light">{selectedInfluencer.bio || 'ยังไม่ได้ระบุคำอธิบายเพิ่มเติ่มค่ะ'}</p>
+                <span className="text-[9px] uppercase tracking-wider text-[#B8860B] font-bold block">คำอธิบายเกี่ยวกับอินฟลูเอนเซอร์</span>
+                <p className="text-xs text-neutral-700 leading-relaxed font-light whitespace-pre-wrap">{selectedInfluencer.bio || 'ไม่มีคำอธิบายเพิ่มเติมค่ะ'}</p>
               </div>
 
-              {/* PROHIBITED DETAILS ACCORDING TO SPECS (SIMULATED SECURE PDPA REASSURANCE) */}
-              <div className="bg-red-50/50 p-4 rounded-xl border border-red-200/50 space-y-2">
-                <div className="flex items-center gap-2 text-xs font-bold text-amber-700">
-                  <ShieldCheck className="w-4 h-4 text-amber-600 shrink-0" />
-                  <span>ระบบรักษาความเป็นส่วนตัวระดับสูง (GDPR & PDPA)</span>
-                </div>
-                
-                <p className="text-[10px] text-neutral-500 leading-relaxed font-light">
-                  ตามเกณฑ์ความปลอดภัยของกระบวนการโอนเงิน ข้อมูลการเงิน และช่องทางการติดต่อส่วตัวจริงต่อไปนี้ จะถูกซ่อนเป็นความลับสูงสุดจากหน้าเว็บเพื่อป้องกันการแสวงประโยชน์โดยไม่ชอบธรรมค่ะ:
-                </p>
-
-                <div className="grid grid-cols-1 gap-1.5 text-[9.5px] border-t border-neutral-150 pt-2 text-neutral-400">
-                  <div className="flex justify-between items-center bg-white/70 p-1 rounded px-2">
-                    <span className="font-semibold flex items-center gap-1"><Landmark className="w-3.5 h-3.5 text-neutral-400" /> ชื่อจริง นามสกุล และเลขบัญชีธนาคาร:</span>
-                    <span className="text-amber-750 font-bold">🔒 ซ่อนความปลอดภัย (ส่งให้ Admin)</span>
-                  </div>
-                  <div className="flex justify-between items-center bg-white/70 p-1 rounded px-2">
-                    <span className="font-semibold flex items-center gap-1"><Mail className="w-3.5 h-3.5 text-neutral-400" /> อีเมลและเบอร์โทรศัพท์:</span>
-                    <span className="text-amber-750 font-bold">🔒 ซ่อนความปลอดภัย (ส่งให้ Admin)</span>
-                  </div>
-                  <div className="flex justify-between items-center bg-white/70 p-1 rounded px-2">
-                    <span className="font-semibold flex items-center gap-1"><Phone className="w-3.5 h-3.5 text-neutral-400" /> ไอดี Line บัญชี:</span>
-                    <span className="text-amber-750 font-bold">🔒 ซ่อนความปลอดภัย (ส่งให้ Admin)</span>
-                  </div>
+              {/* Categories */}
+              <div className="space-y-1.5">
+                <span className="text-[9px] uppercase tracking-wider text-[#B8860B] font-bold block">หมวดหมู่ที่รับงานรีวิวหรือประเภทงานดีล</span>
+                <div className="flex flex-wrap gap-1.5 pt-0.5">
+                  {(selectedInfluencer.workCategories || ['ทั่วไป']).map(cat => (
+                    <span key={cat} className="px-2.5 py-1 rounded bg-neutral-100 text-[10px] text-neutral-700 font-semibold border border-neutral-200">
+                      {cat}
+                    </span>
+                  ))}
                 </div>
               </div>
 
+              {/* Platforms & Links */}
+              <div className="space-y-2 pt-2 border-t border-neutral-100">
+                <span className="text-[9px] uppercase tracking-wider text-[#B8860B] font-bold block">ช่องทางแพลตฟอร์มและลิงก์ติดต่อ</span>
+                <div className="space-y-2">
+                  {(!selectedInfluencer.socials || selectedInfluencer.socials.length === 0) ? (
+                    <p className="text-xs text-neutral-400 italic">ไม่ได้ลงทะเบียนช่องทางไซเบอร์ไว้ค่ะ</p>
+                  ) : (
+                    selectedInfluencer.socials.map((s, idx) => (
+                      <div key={idx} className="flex justify-between items-center text-xs bg-neutral-50 px-3 py-2 rounded-xl border border-neutral-150">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="font-extrabold text-neutral-950 bg-[#D4AF37]/20 px-1.5 py-0.5 rounded text-[8px] uppercase">{s.platform}</span>
+                          <span className="font-bold text-neutral-800">{s.handle}</span>
+                          {s.url ? (
+                            <a
+                              href={s.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:text-blue-800 hover:underline inline-flex items-center gap-0.5 text-[11px]"
+                            >
+                              <span>(ลิงก์ไปยัง {s.platform})</span>
+                              <ExternalLink className="w-3 h-3" />
+                            </a>
+                          ) : (
+                            <span className="text-neutral-300 text-[10px] italic">(ไม่มีลิงก์)</span>
+                          )}
+                        </div>
+                        <span className="text-neutral-600 text-[10.5px] font-semibold">
+                          {(s.followers || 0).toLocaleString()} ฟอล
+                        </span>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+ 
               {/* Action buttons */}
-              <div className="pt-2 flex justify-between gap-1">
+              <div className="pt-2 border-t border-neutral-100 flex justify-end gap-2">
                 <button
-                  onClick={() => { setSelectedInfluencer(null); triggerToast('เจ้าหน้าที่หลังบ้านรับทราบประวัติและความสนใจร่วมแล้วค่ะ', 'info'); }}
-                  className="px-4 py-2 rounded text-xs hover:bg-neutral-50 text-neutral-500"
+                  type="button"
+                  onClick={() => setSelectedInfluencer(null)}
+                  className="px-4 py-2 border border-neutral-200 hover:bg-neutral-50 rounded-lg text-xs text-neutral-500 cursor-pointer"
                 >
                   ย้อนกลับ
                 </button>
                 <button
                   type="button"
-                  onClick={() => handleContactChat(selectedInfluencer)}
-                  className="px-5 py-2 bg-neutral-900 border border-gold-400 text-gold-400 rounded text-xs font-bold hover:bg-neutral-850 hover:text-white"
+                  onClick={() => {
+                    const recipient = selectedInfluencer;
+                    setSelectedInfluencer(null);
+                    handleContactChat(recipient);
+                  }}
+                  className="px-5 py-2 bg-neutral-950 border border-gold-400 text-[#D4AF37] hover:text-white rounded-lg text-xs font-bold hover:bg-neutral-900 transition-colors cursor-pointer"
                 >
-                  เปิดแชทกับคนนี้
+                  เริ่มแชทคุยดีลงาน
                 </button>
               </div>
-
+ 
             </div>
           </div>
         </div>
