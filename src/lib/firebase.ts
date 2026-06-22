@@ -11,7 +11,8 @@ import {
   addDoc,
   updateDoc,
   deleteDoc,
-  where
+  where,
+  getDocFromServer
 } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 import { User, EventItem, JobItem, JobApplication } from "../types";
@@ -31,8 +32,50 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 
 // Initialize Firestore with the custom databaseId provided in metadata config
-export const db = getFirestore(app, "ai-studio-47cdf789-4710-42ec-bbd4-cea522efd00b");
+export let db = getFirestore(app, "ai-studio-47cdf789-4710-42ec-bbd4-cea522efd00b");
 export const auth = getAuth(app);
+
+// Use default DB lock to fall back cleanly on Spark plans
+let useDefaultDbOnly = false;
+
+export function forceFallbackToDefault() {
+  if (!useDefaultDbOnly) {
+    console.warn("Forcing fallback to default database '(default)'...");
+    useDefaultDbOnly = true;
+    try {
+      db = getFirestore(app);
+    } catch (e) {
+      console.error("Failed to reinitialize to default database:", e);
+    }
+  }
+}
+
+// Wrapper to automatically retry once with default database if a database error occurs
+async function runWithFallback<T>(op: () => Promise<T>): Promise<T> {
+  try {
+    return await op();
+  } catch (err: any) {
+    if (!useDefaultDbOnly) {
+      forceFallbackToDefault();
+      return await op();
+    }
+    throw err;
+  }
+}
+
+async function testConnection() {
+  try {
+    await getDocFromServer(doc(db, 'test', 'connection'));
+    console.log("Firestore connection validated successfully.");
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('the client is offline')) {
+      console.error("Please check your Firebase configuration. The client appears to be offline.");
+    } else {
+      console.warn("Verify Firestore database availability:", error);
+    }
+  }
+}
+testConnection();
 
 // Error handling structures as mandated by the firebase-integration skill
 export enum OperationType {
@@ -87,209 +130,290 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
  * This guarantees a smooth first experience for the user with luxury demo data.
  */
 export async function seedDatabaseIfEmpty() {
-  try {
-    // 1. Seed Users
-    const usersColl = collection(db, "users");
-    let userSnap;
+  return runWithFallback(async () => {
     try {
-      userSnap = await getDocs(usersColl);
-    } catch (err) {
-      handleFirestoreError(err, OperationType.GET, "users");
-      return;
-    }
+      // 1. Seed Users
+      const usersColl = collection(db, "users");
+      let userSnap;
+      try {
+        userSnap = await getDocs(usersColl);
+      } catch (err) {
+        handleFirestoreError(err, OperationType.GET, "users");
+        return;
+      }
 
-    if (userSnap.empty) {
-      console.log("Seeding mock users to Firestore...");
-      for (const u of MOCK_USERS) {
-        try {
-          await setDoc(doc(db, "users", u.id), u);
-        } catch (err) {
-          handleFirestoreError(err, OperationType.WRITE, `users/${u.id}`);
+      if (userSnap.empty) {
+        console.log("Seeding mock users to Firestore...");
+        for (const u of MOCK_USERS) {
+          try {
+            await setDoc(doc(db, "users", u.id), u);
+          } catch (err) {
+            handleFirestoreError(err, OperationType.WRITE, `users/${u.id}`);
+          }
         }
       }
-    }
 
-    // 2. Seed Events
-    const eventsColl = collection(db, "events");
-    let eventSnap;
-    try {
-      eventSnap = await getDocs(eventsColl);
-    } catch (err) {
-      handleFirestoreError(err, OperationType.GET, "events");
-      return;
-    }
+      // 2. Seed Events
+      const eventsColl = collection(db, "events");
+      let eventSnap;
+      try {
+        eventSnap = await getDocs(eventsColl);
+      } catch (err) {
+        handleFirestoreError(err, OperationType.GET, "events");
+        return;
+      }
 
-    if (eventSnap.empty) {
-      console.log("Seeding mock events to Firestore...");
-      for (const e of INITIAL_EVENTS) {
-        try {
-          await setDoc(doc(db, "events", e.id), e);
-        } catch (err) {
-          handleFirestoreError(err, OperationType.WRITE, `events/${e.id}`);
+      if (eventSnap.empty) {
+        console.log("Seeding mock events to Firestore...");
+        for (const e of INITIAL_EVENTS) {
+          try {
+            await setDoc(doc(db, "events", e.id), e);
+          } catch (err) {
+            handleFirestoreError(err, OperationType.WRITE, `events/${e.id}`);
+          }
         }
       }
-    }
 
-    // 3. Seed Jobs
-    const jobsColl = collection(db, "jobs");
-    let jobSnap;
-    try {
-      jobSnap = await getDocs(jobsColl);
-    } catch (err) {
-      handleFirestoreError(err, OperationType.GET, "jobs");
-      return;
-    }
+      // 3. Seed Jobs
+      const jobsColl = collection(db, "jobs");
+      let jobSnap;
+      try {
+        jobSnap = await getDocs(jobsColl);
+      } catch (err) {
+        handleFirestoreError(err, OperationType.GET, "jobs");
+        return;
+      }
 
-    if (jobSnap.empty) {
-      console.log("Seeding mock jobs to Firestore...");
-      for (const j of INITIAL_JOBS) {
-        try {
-          await setDoc(doc(db, "jobs", j.id), j);
-        } catch (err) {
-          handleFirestoreError(err, OperationType.WRITE, `jobs/${j.id}`);
+      if (jobSnap.empty) {
+        console.log("Seeding mock jobs to Firestore...");
+        for (const j of INITIAL_JOBS) {
+          try {
+            await setDoc(doc(db, "jobs", j.id), j);
+          } catch (err) {
+            handleFirestoreError(err, OperationType.WRITE, `jobs/${j.id}`);
+          }
         }
       }
+    } catch (error) {
+      console.error("Firebase seeding failed: ", error);
     }
-  } catch (error) {
-    console.error("Firebase seeding failed: ", error);
-  }
+  });
 }
 
 // --- Dynamic Firestore API wrapper functions ---
 
 // 1. Users Firestore API
 export async function fetchAllUsers(): Promise<User[]> {
-  try {
-    let snap;
+  return runWithFallback(async () => {
     try {
-      snap = await getDocs(collection(db, "users"));
+      let snap;
+      try {
+        snap = await getDocs(collection(db, "users"));
+      } catch (err) {
+        handleFirestoreError(err, OperationType.GET, "users");
+        return [];
+      }
+      const list: User[] = [];
+      snap.forEach((d) => {
+        list.push({ id: d.id, ...d.data() } as User);
+      });
+      return list;
     } catch (err) {
-      handleFirestoreError(err, OperationType.GET, "users");
+      console.error("Error fetching users:", err);
       return [];
     }
-    const list: User[] = [];
-    snap.forEach((d) => {
-      list.push({ id: d.id, ...d.data() } as User);
-    });
-    return list;
-  } catch (err) {
-    console.error("Error fetching users:", err);
-    return [];
-  }
+  });
 }
 
 export async function saveUserToFirestore(user: User): Promise<void> {
-  try {
-    await setDoc(doc(db, "users", user.id), user);
-  } catch (err) {
-    handleFirestoreError(err, OperationType.WRITE, `users/${user.id}`);
-  }
+  return runWithFallback(async () => {
+    try {
+      await setDoc(doc(db, "users", user.id), user);
+    } catch (err) {
+      handleFirestoreError(err, OperationType.WRITE, `users/${user.id}`);
+    }
+  });
 }
 
 export function subscribeUsers(callback: (users: User[]) => void) {
-  return onSnapshot(collection(db, "users"), (snap) => {
-    const list: User[] = [];
-    snap.forEach((d) => {
-      list.push({ id: d.id, ...d.data() } as User);
+  let unsubscribe: (() => void) | null = null;
+  const setup = () => {
+    return onSnapshot(collection(db, "users"), (snap) => {
+      const list: User[] = [];
+      snap.forEach((d) => {
+        list.push({ id: d.id, ...d.data() } as User);
+      });
+      callback(list);
+    }, (err) => {
+      if (!useDefaultDbOnly) {
+        console.warn("Users subscription failed. Switching to default database...", err);
+        forceFallbackToDefault();
+        if (unsubscribe) unsubscribe();
+        unsubscribe = setup();
+      } else {
+        handleFirestoreError(err, OperationType.GET, "users");
+      }
     });
-    callback(list);
-  }, (err) => {
-    handleFirestoreError(err, OperationType.GET, "users");
-  });
+  };
+  unsubscribe = setup();
+  return () => {
+    if (unsubscribe) unsubscribe();
+  };
 }
 
 // 2. Events Firestore API
 export async function saveEventToFirestore(event: EventItem): Promise<void> {
-  try {
-    await setDoc(doc(db, "events", event.id), event);
-  } catch (err) {
-    handleFirestoreError(err, OperationType.WRITE, `events/${event.id}`);
-  }
+  return runWithFallback(async () => {
+    try {
+      await setDoc(doc(db, "events", event.id), event);
+    } catch (err) {
+      handleFirestoreError(err, OperationType.WRITE, `events/${event.id}`);
+    }
+  });
 }
 
 export function subscribeEvents(callback: (events: EventItem[]) => void) {
-  return onSnapshot(collection(db, "events"), (snap) => {
-    const list: EventItem[] = [];
-    snap.forEach((d) => {
-      list.push({ id: d.id, ...d.data() } as EventItem);
+  let unsubscribe: (() => void) | null = null;
+  const setup = () => {
+    return onSnapshot(collection(db, "events"), (snap) => {
+      const list: EventItem[] = [];
+      snap.forEach((d) => {
+        list.push({ id: d.id, ...d.data() } as EventItem);
+      });
+      list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      callback(list);
+    }, (err) => {
+      if (!useDefaultDbOnly) {
+        console.warn("Events subscription failed. Switching to default database...", err);
+        forceFallbackToDefault();
+        if (unsubscribe) unsubscribe();
+        unsubscribe = setup();
+      } else {
+        handleFirestoreError(err, OperationType.GET, "events");
+      }
     });
-    // Sort recently created event first
-    list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-    callback(list);
-  }, (err) => {
-    handleFirestoreError(err, OperationType.GET, "events");
-  });
+  };
+  unsubscribe = setup();
+  return () => {
+    if (unsubscribe) unsubscribe();
+  };
 }
 
 // 3. Jobs Firestore API
 export async function saveJobToFirestore(job: JobItem): Promise<void> {
-  try {
-    await setDoc(doc(db, "jobs", job.id), job);
-  } catch (err) {
-    handleFirestoreError(err, OperationType.WRITE, `jobs/${job.id}`);
-  }
+  return runWithFallback(async () => {
+    try {
+      await setDoc(doc(db, "jobs", job.id), job);
+    } catch (err) {
+      handleFirestoreError(err, OperationType.WRITE, `jobs/${job.id}`);
+    }
+  });
 }
 
 export function subscribeJobs(callback: (jobs: JobItem[]) => void) {
-  return onSnapshot(collection(db, "jobs"), (snap) => {
-    const list: JobItem[] = [];
-    snap.forEach((d) => {
-      list.push({ id: d.id, ...d.data() } as JobItem);
+  let unsubscribe: (() => void) | null = null;
+  const setup = () => {
+    return onSnapshot(collection(db, "jobs"), (snap) => {
+      const list: JobItem[] = [];
+      snap.forEach((d) => {
+        list.push({ id: d.id, ...d.data() } as JobItem);
+      });
+      list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      callback(list);
+    }, (err) => {
+      if (!useDefaultDbOnly) {
+        console.warn("Jobs subscription failed. Switching to default database...", err);
+        forceFallbackToDefault();
+        if (unsubscribe) unsubscribe();
+        unsubscribe = setup();
+      } else {
+        handleFirestoreError(err, OperationType.GET, "jobs");
+      }
     });
-    // Sort recently created jobs first
-    list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-    callback(list);
-  }, (err) => {
-    handleFirestoreError(err, OperationType.GET, "jobs");
-  });
+  };
+  unsubscribe = setup();
+  return () => {
+    if (unsubscribe) unsubscribe();
+  };
 }
 
 // 4. Job Applications Firestore API
 export async function saveApplicationToFirestore(app: JobApplication): Promise<void> {
-  try {
-    await setDoc(doc(db, "applications", app.id), app);
-  } catch (err) {
-    handleFirestoreError(err, OperationType.WRITE, `applications/${app.id}`);
-  }
-}
-
-export function subscribeApplications(callback: (apps: JobApplication[]) => void) {
-  return onSnapshot(collection(db, "applications"), (snap) => {
-    const list: JobApplication[] = [];
-    snap.forEach((d) => {
-      list.push({ id: d.id, ...d.data() } as JobApplication);
-    });
-    callback(list);
-  }, (err) => {
-    handleFirestoreError(err, OperationType.GET, "applications");
+  return runWithFallback(async () => {
+    try {
+      await setDoc(doc(db, "applications", app.id), app);
+    } catch (err) {
+      handleFirestoreError(err, OperationType.WRITE, `applications/${app.id}`);
+    }
   });
 }
 
+export function subscribeApplications(callback: (apps: JobApplication[]) => void) {
+  let unsubscribe: (() => void) | null = null;
+  const setup = () => {
+    return onSnapshot(collection(db, "applications"), (snap) => {
+      const list: JobApplication[] = [];
+      snap.forEach((d) => {
+        list.push({ id: d.id, ...d.data() } as JobApplication);
+      });
+      callback(list);
+    }, (err) => {
+      if (!useDefaultDbOnly) {
+        console.warn("Applications subscription failed. Switching to default database...", err);
+        forceFallbackToDefault();
+        if (unsubscribe) unsubscribe();
+        unsubscribe = setup();
+      } else {
+        handleFirestoreError(err, OperationType.GET, "applications");
+      }
+    });
+  };
+  unsubscribe = setup();
+  return () => {
+    if (unsubscribe) unsubscribe();
+  };
+}
+
 export async function deleteUserFromFirestore(id: string): Promise<void> {
-  try {
-    await deleteDoc(doc(db, "users", id));
-  } catch (err) {
-    handleFirestoreError(err, OperationType.DELETE, `users/${id}`);
-  }
+  return runWithFallback(async () => {
+    try {
+      await deleteDoc(doc(db, "users", id));
+    } catch (err) {
+      handleFirestoreError(err, OperationType.DELETE, `users/${id}`);
+    }
+  });
 }
 
 // 5. Support History / Messages Firestore API (Live Support Chat)
 export function subscribeSupportMessages(callback: (messages: any[]) => void) {
-  return onSnapshot(collection(db, "support_messages"), (snap) => {
-    const list: any[] = [];
-    snap.forEach((d) => {
-      list.push({ id: d.id, ...d.data() });
+  let unsubscribe: (() => void) | null = null;
+  const setup = () => {
+    return onSnapshot(collection(db, "support_messages"), (snap) => {
+      const list: any[] = [];
+      snap.forEach((d) => {
+        list.push({ id: d.id, ...d.data() });
+      });
+      list.sort((a, b) => {
+        const timeA = a.createdTimestamp || 0;
+        const timeB = b.createdTimestamp || 0;
+        return timeA - timeB;
+      });
+      callback(list);
+    }, (err) => {
+      if (!useDefaultDbOnly) {
+        console.warn("Support messages subscription failed. Switching to default database...", err);
+        forceFallbackToDefault();
+        if (unsubscribe) unsubscribe();
+        unsubscribe = setup();
+      } else {
+        handleFirestoreError(err, OperationType.GET, "support_messages");
+      }
     });
-    // Sort by chronological order
-    list.sort((a, b) => {
-      const timeA = a.createdTimestamp || 0;
-      const timeB = b.createdTimestamp || 0;
-      return timeA - timeB;
-    });
-    callback(list);
-  }, (err) => {
-    handleFirestoreError(err, OperationType.GET, "support_messages");
-  });
+  };
+  unsubscribe = setup();
+  return () => {
+    if (unsubscribe) unsubscribe();
+  };
 }
 
 export async function addSupportMessageToFirestore(message: {
@@ -301,13 +425,15 @@ export async function addSupportMessageToFirestore(message: {
   isFromAdmin: boolean;
   createdTimestamp: number;
 }): Promise<void> {
-  try {
-    const id = message.id || `msg_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
-    await setDoc(doc(db, "support_messages", id), {
-      ...message,
-      id
-    });
-  } catch (err) {
-    handleFirestoreError(err, OperationType.WRITE, `support_messages/${message.id}`);
-  }
+  return runWithFallback(async () => {
+    try {
+      const id = message.id || `msg_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+      await setDoc(doc(db, "support_messages", id), {
+        ...message,
+        id
+      });
+    } catch (err) {
+      handleFirestoreError(err, OperationType.WRITE, `support_messages/${message.id}`);
+    }
+  });
 }
