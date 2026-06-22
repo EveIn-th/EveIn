@@ -75,7 +75,7 @@ export default function Header({
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-20">
           
-          {/* Custom Elegant Logo related to EveIn (Event + Influencer) */}
+          {/* Custom Elegant Logo related to EveIn (Event + Influencer) - No Star */}
           <div 
             onClick={() => {
               setActiveTab('home');
@@ -84,19 +84,13 @@ export default function Header({
             className="flex items-center gap-2.5 cursor-pointer group select-none"
             title="EveIn Premium Event Matching"
           >
-            <div className="relative flex items-center justify-center w-11 h-11 rounded-xl bg-gradient-to-br from-neutral-900 to-neutral-800 border-2 border-[#D4AF37] shadow-md overflow-hidden group-hover:border-gold-300 transition-all font-serif">
-              {/* Luxury shimmering backdrop */}
-              <div className="absolute inset-0 bg-gradient-to-tr from-gold-500/10 via-transparent to-gold-400/20" />
-              <div className="absolute inset-0 bg-gold-400/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            <div className="relative flex items-center justify-center w-11 h-11 rounded-xl bg-gradient-to-br from-neutral-950 to-neutral-900 border-2 border-[#D4AF37]/90 shadow-md overflow-hidden group-hover:border-gold-400 transition-all font-serif duration-300">
+              {/* Luxury subtle gradient backdrop */}
+              <div className="absolute inset-0 bg-gradient-to-tr from-amber-500/10 via-transparent to-neutral-900" />
               
               {/* Monogram letters */}
-              <span className="text-lg font-bold tracking-tighter text-[#D4AF37] font-serif select-none group-hover:scale-105 transition-transform duration-300">E</span>
-              <span className="text-xs font-semibold tracking-tighter text-white -ml-0.5 mt-2 select-none group-hover:scale-110 transition-transform duration-300">i</span>
-              
-              {/* Sparkling effect representing curated events */}
-              <div className="absolute top-1.5 right-1.5">
-                <Sparkles className="w-2.5 h-2.5 text-[#D4AF37] animate-pulse" />
-              </div>
+              <span className="text-lg font-extrabold tracking-tighter text-[#D4AF37] font-serif select-none group-hover:translate-x-0.5 transition-transform">E</span>
+              <span className="text-xs font-semibold tracking-tighter text-white -ml-0.5 mt-2 select-none group-hover:-translate-y-0.5 transition-transform">i</span>
             </div>
             <div className="flex flex-col">
               <span className="text-[22px] font-extrabold tracking-widest text-[#1a1a1a] leading-none mb-0.5 flex items-center">
@@ -106,45 +100,10 @@ export default function Header({
             </div>
           </div>
 
-          {/* Desktop Navigation */}
-          <nav className="hidden md:flex space-x-6 items-center">
-            {navItems.map((item) => (
-              <button
-                key={item.id}
-                id={`nav-${item.id}`}
-                onClick={() => {
-                  if (!currentUser && item.id === 'dashboard') {
-                    setShowAuthModal('login');
-                  } else {
-                    setActiveTab(item.id);
-                  }
-                }}
-                className={`py-1 text-xs font-semibold uppercase tracking-widest transition-colors duration-200 border-b-2 cursor-pointer ${
-                  activeTab === item.id
-                    ? 'border-[#D4AF37] text-[#B8860B]'
-                    : 'border-transparent text-gray-500 hover:text-[#B8860B]'
-                }`}
-              >
-                {item.label}
-              </button>
-            ))}
-            
-            {/* Website Manager Portal button - strictly limited to Admin role users */}
-            {currentUser?.role === 'Admin' && (
-              <button
-                id="admin-backend-portal-btn"
-                onClick={() => setActiveTab('adminBackend')}
-                className={`flex items-center gap-1.5 px-4.5 py-2 text-xs font-bold uppercase tracking-wider rounded-full border transition-all cursor-pointer ${
-                  activeTab === 'adminBackend'
-                    ? 'bg-[#D4AF37] text-neutral-950 border-[#D4AF37] shadow-lg shadow-gold-500/20'
-                    : 'bg-neutral-950 text-[#D4AF37] border-gold-400 hover:bg-neutral-900'
-                }`}
-              >
-                <Shield className="w-3.5 h-3.5 animate-pulse" />
-                <span>ตัวจัดการเว็บไซต์</span>
-              </button>
-            )}
-          </nav>
+          {/* Desktop Navigation - Removed and relocated entirely to universal sticky bottom bar */}
+          <div className="hidden md:flex items-center">
+            {/* Kept header background clean and spacious as requested */}
+          </div>
 
           {/* Right Accessories */}
           <div className="flex items-center gap-3">
@@ -346,86 +305,10 @@ export default function Header({
                 </button>
               </div>
             )}
-
-            {/* Mobile menu toggle */}
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden p-2 text-neutral-600 hover:text-gold-600"
-            >
-              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-            </button>
           </div>
 
         </div>
       </div>
-
-      {/* Mobile Drawer Navigation */}
-      {mobileMenuOpen && (
-        <div className="md:hidden bg-white border-b border-gold-100 p-4 space-y-2 relative z-50">
-          <div className="flex items-center justify-between pb-3 mb-2 border-b border-neutral-100">
-            <span className="text-[10px] uppercase text-neutral-400 tracking-wider font-semibold">เมนูแพลตฟอร์ม</span>
-          </div>
-          
-          {navItems.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => {
-                if (!currentUser && item.id === 'dashboard') {
-                  setShowAuthModal('login');
-                } else {
-                  setActiveTab(item.id);
-                }
-                setMobileMenuOpen(false);
-              }}
-              className={`w-full text-left px-4 py-3 rounded-lg text-sm font-medium tracking-wide transition-all ${
-                activeTab === item.id 
-                  ? 'bg-gold-50 text-gold-600 border-l-4 border-gold-500' 
-                  : 'text-neutral-600 hover:bg-neutral-50'
-              }`}
-            >
-              {item.label}
-            </button>
-          ))}
-          
-          {/* Mobile Admin Backend portal button: STRICTLY EXPOSED ONLY to logged-in Super Administrators */}
-          {currentUser?.role === 'Admin' && (
-            <button
-              onClick={() => {
-                setActiveTab('adminBackend');
-                setMobileMenuOpen(false);
-              }}
-              className={`w-full flex items-center justify-between px-4 py-3 rounded-lg text-sm font-bold tracking-wide transition-all border ${
-                activeTab === 'adminBackend'
-                  ? 'bg-gold-500 text-neutral-950 border-gold-500'
-                  : 'bg-neutral-950 text-[#D4AF37] border-gold-400 hover:bg-neutral-900'
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <Shield className="w-4 h-4 shrink-0" />
-                <span>ตัวจัดการเว็บไซต์</span>
-              </div>
-              <Sparkles className="w-4 h-4 text-[#D4AF37] animate-pulse" />
-            </button>
-          )}
-          
-          {!currentUser && (
-            <div className="grid grid-cols-2 gap-2 pt-3 border-t border-neutral-100">
-              <button
-                onClick={() => { setShowAuthModal('login'); setMobileMenuOpen(false); }}
-                className="w-full py-2.5 text-center text-xs font-semibold rounded bg-neutral-100 text-neutral-700"
-              >
-                เข้าสู่ระบบ
-              </button>
-              <button
-                onClick={() => { setShowAuthModal('register'); setMobileMenuOpen(false); }}
-                className="w-full py-2.5 text-center text-xs font-semibold rounded bg-gold-500 text-white"
-              >
-                สมัครสมาชิก
-              </button>
-            </div>
-          )}
-        </div>
-      )}
     </header>
   );
 }

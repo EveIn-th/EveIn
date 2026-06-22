@@ -19,7 +19,7 @@ export default function ChatMessengerWidget({
 }: ChatMessengerWidgetProps) {
   
   const [activeRecipientId, setActiveRecipientId] = useState<string>(chatWithUserId || '');
-  const [activeTab, setActiveTab] = useState<'chat' | 'contacts'>('chat');
+  const [activeTab, setActiveTab] = useState<'chat' | 'contacts'>(chatWithUserId ? 'chat' : 'contacts');
   const [inputText, setInputText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);

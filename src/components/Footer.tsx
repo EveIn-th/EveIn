@@ -21,18 +21,13 @@ export default function Footer({ setActiveTab }: FooterProps) {
               className="flex items-center gap-2.5 cursor-pointer group select-none"
               title="EveIn Premium Event Matching"
             >
-              <div className="relative flex items-center justify-center w-9 h-9 rounded-lg bg-gradient-to-br from-neutral-900 to-neutral-800 border border-[#D4AF37]/80 shadow-md overflow-hidden group-hover:border-gold-300 transition-all font-serif">
+              <div className="relative flex items-center justify-center w-9 h-9 rounded-lg bg-gradient-to-br from-neutral-950 to-neutral-900 border border-[#D4AF37]/80 shadow-md overflow-hidden group-hover:border-gold-300 transition-all font-serif duration-300">
                 {/* Luxury shimmering backdrop */}
-                <div className="absolute inset-0 bg-gradient-to-tr from-gold-500/10 via-transparent to-gold-400/20" />
+                <div className="absolute inset-0 bg-gradient-to-tr from-amber-500/10 via-transparent to-neutral-950" />
                 
                 {/* Monogram letters */}
-                <span className="text-sm font-bold tracking-tighter text-[#D4AF37] font-serif select-none select-none">E</span>
+                <span className="text-sm font-bold tracking-tighter text-[#D4AF37] font-serif select-none">E</span>
                 <span className="text-[10px] font-semibold tracking-tighter text-white -ml-0.5 mt-1.5 select-none">i</span>
-                
-                {/* Sparkling effect representing curated events */}
-                <div className="absolute top-1 right-1">
-                  <Sparkles className="w-1.5 h-1.5 text-[#D4AF37] animate-pulse" />
-                </div>
               </div>
               <div className="flex flex-col">
                 <span className="text-lg font-extrabold tracking-widest text-[#ffffff] leading-none mb-0.5 flex items-center">

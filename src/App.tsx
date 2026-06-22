@@ -13,7 +13,7 @@ import AuthView from './components/AuthView';
 import ProfileView from './components/ProfileView';
 import ChatMessengerWidget from './components/ChatMessengerWidget';
 import AdminBackendView from './components/AdminBackendView';
-import { Sparkles, ShieldCheck, X, AlertCircle, Home, Calendar, Briefcase, Users, LayoutDashboard, Shield } from 'lucide-react';
+import { Sparkles, ShieldCheck, X, AlertCircle, Home, Calendar, Briefcase, Users, LayoutDashboard, Shield, MessageSquare } from 'lucide-react';
 
 export default function App() {
   
@@ -198,7 +198,7 @@ export default function App() {
 
 
       {/* 3. Main core view content wrapper */}
-      <main className="flex-1 pb-28 md:pb-16">
+      <main className="flex-1 pb-28">
         {activeTab === 'home' && (
           <HomeView
             onNavigate={setActiveTab}
@@ -298,7 +298,7 @@ export default function App() {
       />
 
       {/* 6. Partner/Candidate Messenger Window */}
-      {chatOpen && chatWithUser && (
+      {chatOpen && (
         <ChatMessengerWidget
           currentUser={currentUser}
           chatWithUserId={chatWithUser}
@@ -306,6 +306,24 @@ export default function App() {
           allUsers={allUsers}
           triggerToast={triggerToast}
         />
+      )}
+
+      {/* 6.5 Floating Brand-Influencer Direct Chat Deal Button (ห้องแชตคุยตกลงส่วนตัวเฉพาะแบรนด์-อินฟลู) */}
+      {currentUser && (
+        <div className="fixed bottom-22 left-6 z-40">
+          <button
+            onClick={() => setChatOpen(!chatOpen)}
+            className={`flex items-center gap-1.5 px-4.5 py-2.5 rounded-full transition-all font-prompt shadow-xl border cursor-pointer transform hover:scale-105 active:scale-95 duration-250 ${
+              chatOpen
+                ? 'bg-neutral-900 text-[#D4AF37] border border-[#D4AF37]/50'
+                : 'bg-gradient-to-r from-neutral-900 to-neutral-850 hover:from-neutral-950 hover:to-neutral-900 text-white font-semibold border-neutral-805 hover:border-neutral-700 shadow-md'
+            }`}
+            title="ห้องแชตสัญญาระหว่างแบนด์กับครีเอเตอร์อินฟลูเอนเซอร์เท่านั้น"
+          >
+            <MessageSquare className="w-3.5 h-3.5 text-[#D4AF37] animate-pulse" />
+            <span className="text-[11px] font-bold tracking-wider">แชทดีลงาน Brand-Influencer</span>
+          </button>
+        </div>
       )}
 
       {/* 7. Authentications Switch modal */}
@@ -323,57 +341,59 @@ export default function App() {
       {/* 8. Footer */}
       <Footer setActiveTab={setActiveTab} />
 
-      {/* 9. Mobile Sticky Bottom Navigation Bar (ล็อคคงที่ด้านล่างสุด) */}
-      <div className="fixed bottom-0 left-0 right-0 md:hidden bg-white/95 backdrop-blur-md border-t border-[#D4AF37]/25 h-16 flex justify-around items-center z-50 px-2 shadow-[0_-5px_15px_-3px_rgba(0,0,0,0.05)]">
-        {[
-          { id: 'home', label: 'หน้าแรก', icon: Home },
-          { id: 'events', label: 'งานอิเวนต์', icon: Calendar },
-          { id: 'reviewJobs', label: 'งานรีวิว', icon: Briefcase },
-          { id: 'findInfluencers', label: 'ค้นหาอินฟลู', icon: Users },
-          { id: 'dashboard', label: 'งานของฉัน', icon: LayoutDashboard },
-        ].map((item) => {
-          const IconComp = item.icon;
-          const isActive = activeTab === item.id;
-          return (
+      {/* 9. Universal Sticky Bottom Navigation Bar (ล็อคคงที่ด้านล่างสุดทุกอุปกรณ์) */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-[#D4AF37]/25 h-16 flex justify-around items-center z-50 px-2 shadow-[0_-5px_15px_-3px_rgba(0,0,0,0.05)]">
+        <div className="max-w-3xl w-full mx-auto flex justify-around items-center h-full">
+          {[
+            { id: 'home', label: 'หน้าแรก', icon: Home },
+            { id: 'events', label: 'งานอิเวนต์', icon: Calendar },
+            { id: 'reviewJobs', label: 'งานรีวิว', icon: Briefcase },
+            { id: 'findInfluencers', label: 'ค้นหาอินฟลู', icon: Users },
+            { id: 'dashboard', label: 'งานของฉัน', icon: LayoutDashboard },
+          ].map((item) => {
+            const IconComp = item.icon;
+            const isActive = activeTab === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => {
+                  if (!currentUser && item.id === 'dashboard') {
+                    setShowAuthModal('login');
+                  } else {
+                    setActiveTab(item.id);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }
+                }}
+                className={`flex flex-col items-center justify-center flex-1 h-full py-1 text-[10px] font-prompt font-semibold tracking-tight transition-all cursor-pointer ${
+                  isActive ? 'text-[#B8860B]' : 'text-zinc-400 hover:text-zinc-650'
+                }`}
+              >
+                <div className={`p-1.5 rounded-full transition-all duration-200 ${isActive ? 'bg-[#D4AF37]/10 scale-110' : ''}`}>
+                  <IconComp className={`w-4 h-4 ${isActive ? 'text-[#B8860B]' : 'text-zinc-400'}`} />
+                </div>
+                <span className="-mt-0.5 scale-90">{item.label}</span>
+              </button>
+            );
+          })}
+
+          {/* Exclusive matching admin backend tab */}
+          {currentUser?.role === 'Admin' && (
             <button
-              key={item.id}
               onClick={() => {
-                if (!currentUser && item.id === 'dashboard') {
-                  setShowAuthModal('login');
-                } else {
-                  setActiveTab(item.id);
-                  window.scrollTo({ top: 0, behavior: 'smooth' });
-                }
+                setActiveTab('adminBackend');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
               }}
               className={`flex flex-col items-center justify-center flex-1 h-full py-1 text-[10px] font-prompt font-semibold tracking-tight transition-all cursor-pointer ${
-                isActive ? 'text-[#B8860B]' : 'text-zinc-400 hover:text-zinc-600'
+                activeTab === 'adminBackend' ? 'text-[#B8860B]' : 'text-zinc-400 hover:text-zinc-650'
               }`}
             >
-              <div className={`p-1.5 rounded-full transition-all duration-200 ${isActive ? 'bg-[#D4AF37]/10 scale-110' : ''}`}>
-                <IconComp className={`w-4 h-4 ${isActive ? 'text-[#B8860B]' : 'text-zinc-400'}`} />
+              <div className={`p-1.5 rounded-full transition-transform duration-200 ${activeTab === 'adminBackend' ? 'bg-[#D4AF37]/10 scale-110' : ''}`}>
+                <Shield className={`w-4 h-4 ${activeTab === 'adminBackend' ? 'text-[#B8860B]' : 'text-zinc-400'}`} />
               </div>
-              <span className="-mt-0.5 scale-90">{item.label}</span>
+              <span className="-mt-0.5 scale-90">แอดมิน</span>
             </button>
-          );
-        })}
-
-        {/* Exclusive matching admin backend tab */}
-        {currentUser?.role === 'Admin' && (
-          <button
-            onClick={() => {
-              setActiveTab('adminBackend');
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
-            className={`flex flex-col items-center justify-center flex-1 h-full py-1 text-[10px] font-prompt font-semibold tracking-tight transition-all cursor-pointer ${
-              activeTab === 'adminBackend' ? 'text-[#B8860B]' : 'text-zinc-400 hover:text-zinc-650'
-            }`}
-          >
-            <div className={`p-1.5 rounded-full transition-transform duration-200 ${activeTab === 'adminBackend' ? 'bg-[#D4AF37]/10 scale-110' : ''}`}>
-              <Shield className={`w-4 h-4 ${activeTab === 'adminBackend' ? 'text-[#B8860B]' : 'text-zinc-400'}`} />
-            </div>
-            <span className="-mt-0.5 scale-90">แอดมิน</span>
-          </button>
-        )}
+          )}
+        </div>
       </div>
 
     </div>
