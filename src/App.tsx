@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MOCK_USERS, INITIAL_EVENTS, INITIAL_JOBS, INITIAL_APPLICATIONS } from './mockData';
+import { MOCK_USERS } from './mockData';
 import { User, EventItem, JobItem, JobApplication, SystemNotification } from './types';
 import Header from './components/Header';
 import Footer from './components/Footer';
@@ -14,6 +14,18 @@ import ProfileView from './components/ProfileView';
 import ChatMessengerWidget from './components/ChatMessengerWidget';
 import AdminBackendView from './components/AdminBackendView';
 import { Sparkles, ShieldCheck, X, AlertCircle, Home, Calendar, Briefcase, Users, LayoutDashboard, Shield, MessageSquare } from 'lucide-react';
+import { 
+  seedDatabaseIfEmpty, 
+  subscribeUsers, 
+  subscribeEvents, 
+  subscribeJobs, 
+  subscribeApplications, 
+  subscribeSupportMessages,
+  saveUserToFirestore,
+  saveEventToFirestore,
+  saveJobToFirestore,
+  saveApplicationToFirestore
+} from './lib/firebase';
 
 export default function App() {
   
@@ -45,37 +57,77 @@ export default function App() {
   const [notifications, setNotifications] = useState<SystemNotification[]>([]);
   const [supportHistory, setSupportHistory] = useState<any[]>([]);
 
-  // Load from Backend API on mount
+  // Load from Firebase Firestore with active real-time subscriptions on mount
   useEffect(() => {
-    fetch('/api/state')
-      .then(res => res.json())
-      .then(data => {
-        if (data.allUsers && data.allUsers.length > 0) {
-          setAllUsers(data.allUsers);
-        }
-        if (data.events) setEvents(data.events);
-        if (data.jobs) setJobs(data.jobs);
-        if (data.applications) setApplications(data.applications);
-        if (data.notifications) setNotifications(data.notifications);
-        if (data.supportHistory) setSupportHistory(data.supportHistory);
-      })
-      .catch(err => {
-        console.warn('Backend server state loading offline, falling back to localStorage buffer:', err);
-        // Fallback loads
-        const savedJobs = localStorage.getItem('evein_jobs');
-        if (savedJobs) setJobs(JSON.parse(savedJobs));
-        const savedApps = localStorage.getItem('evein_applications');
-        if (savedApps) setApplications(JSON.parse(savedApps));
-        const savedEvents = localStorage.getItem('evein_events');
-        if (savedEvents) setEvents(JSON.parse(savedEvents));
-        const savedNotifs = localStorage.getItem('evein_notifications');
-        if (savedNotifs) setNotifications(JSON.parse(savedNotifs));
-        const savedSupports = localStorage.getItem('evein_support_history');
-        if (savedSupports) setSupportHistory(JSON.parse(savedSupports));
+    // 1. Seed database with premium mock templates if it is completely empty
+    seedDatabaseIfEmpty().then(() => {
+      // 2. Subscribe to Users
+      const unsubscribeUsers = subscribeUsers((users) => {
+        setAllUsers(users);
       });
+
+      // 3. Subscribe to Events
+      const unsubscribeEvents = subscribeEvents((evs) => {
+        setEvents(evs);
+      });
+
+      // 4. Subscribe to Jobs
+      const unsubscribeJobs = subscribeJobs((jbs) => {
+        setJobs(jbs);
+      });
+
+      // 5. Subscribe to Applications
+      const unsubscribeApps = subscribeApplications((apps) => {
+        setApplications(apps);
+      });
+
+      // 6. Subscribe to Customer Support Messages
+      const unsubscribeSupport = subscribeSupportMessages((history) => {
+        setSupportHistory(history);
+      });
+
+      return () => {
+        unsubscribeUsers();
+        unsubscribeEvents();
+        unsubscribeJobs();
+        unsubscribeApps();
+        unsubscribeSupport();
+      };
+    }).catch(err => {
+      console.error("Firestore subscription setup error:", err);
+    });
   }, []);
 
-  // Synchronize state mutations to backend API & localStorage as backup
+  // Synchronize current user status and roles from Firestore in real-time
+  useEffect(() => {
+    if (!currentUser) return;
+    const dbUser = allUsers.find(u => u.id === currentUser.id);
+    if (dbUser) {
+      if (
+        dbUser.username !== currentUser.username ||
+        dbUser.realName !== currentUser.realName ||
+        dbUser.role !== currentUser.role ||
+        dbUser.phone !== currentUser.phone ||
+        dbUser.password !== currentUser.password ||
+        dbUser.transactionPassword !== currentUser.transactionPassword ||
+        dbUser.isFrozen !== currentUser.isFrozen ||
+        dbUser.isBanned !== currentUser.isBanned ||
+        dbUser.bankName !== currentUser.bankName ||
+        dbUser.bankAccount !== currentUser.bankAccount
+      ) {
+        if (dbUser.isFrozen || dbUser.isBanned) {
+          setCurrentUser(null);
+          localStorage.removeItem('evein_current_user');
+          triggerToast('บัญชีของคุณได้รับการอัปเดตสถานะความปลอดภัย กรุณาเข้าสู่ระบบใหม่อีกครั้งค่ะ', 'warning');
+        } else {
+          setCurrentUser(dbUser);
+          localStorage.setItem('evein_current_user', JSON.stringify(dbUser));
+        }
+      }
+    }
+  }, [allUsers, currentUser]);
+
+  // Backup state mutations to local storage for local responsive rendering
   useEffect(() => {
     if (allUsers.length === 0) return;
 
@@ -86,23 +138,6 @@ export default function App() {
     localStorage.setItem('evein_applications', JSON.stringify(applications));
     localStorage.setItem('evein_notifications', JSON.stringify(notifications));
     localStorage.setItem('evein_support_history', JSON.stringify(supportHistory));
-
-    // Post sync payload to backend server
-    const syncPayload = {
-      allUsers,
-      events,
-      jobs,
-      applications,
-      notifications,
-      supportHistory
-    };
-
-    fetch('/api/sync', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(syncPayload)
-    })
-    .catch(err => console.error('Error syncing state with backend server:', err));
   }, [allUsers, currentUser, events, jobs, applications, notifications, supportHistory]);
 
   // Auth Dialog state
@@ -198,7 +233,7 @@ export default function App() {
 
 
       {/* 3. Main core view content wrapper */}
-      <main className="flex-1 pb-28">
+      <main className="flex-1 pb-36">
         {activeTab === 'home' && (
           <HomeView
             onNavigate={setActiveTab}
@@ -263,8 +298,8 @@ export default function App() {
           />
         )}
 
-        {/* Website Manager backend - strictly guarded for Admin users */}
-        {activeTab === 'adminBackend' && currentUser?.role === 'Admin' && (
+        {/* Website Manager backend - strictly guarded for Admin or WebsiteManager users */}
+        {activeTab === 'adminBackend' && (currentUser?.role === 'Admin' || currentUser?.role === 'WebsiteManager') && (
           <AdminBackendView
             allUsers={allUsers}
             setAllUsers={setAllUsers}
@@ -308,24 +343,6 @@ export default function App() {
         />
       )}
 
-      {/* 6.5 Floating Brand-Influencer Direct Chat Deal Button (ห้องแชตคุยตกลงส่วนตัวเฉพาะแบรนด์-อินฟลู) */}
-      {currentUser && (
-        <div className="fixed bottom-22 left-6 z-40">
-          <button
-            onClick={() => setChatOpen(!chatOpen)}
-            className={`flex items-center gap-1.5 px-4.5 py-2.5 rounded-full transition-all font-prompt shadow-xl border cursor-pointer transform hover:scale-105 active:scale-95 duration-250 ${
-              chatOpen
-                ? 'bg-neutral-900 text-[#D4AF37] border border-[#D4AF37]/50'
-                : 'bg-gradient-to-r from-neutral-900 to-neutral-850 hover:from-neutral-950 hover:to-neutral-900 text-white font-semibold border-neutral-805 hover:border-neutral-700 shadow-md'
-            }`}
-            title="ห้องแชตสัญญาระหว่างแบนด์กับครีเอเตอร์อินฟลูเอนเซอร์เท่านั้น"
-          >
-            <MessageSquare className="w-3.5 h-3.5 text-[#D4AF37] animate-pulse" />
-            <span className="text-[11px] font-bold tracking-wider">แชทดีลงาน Brand-Influencer</span>
-          </button>
-        </div>
-      )}
-
       {/* 7. Authentications Switch modal */}
       {showAuthModal && (
         <AuthView
@@ -341,8 +358,11 @@ export default function App() {
       {/* 8. Footer */}
       <Footer setActiveTab={setActiveTab} />
 
-      {/* 9. Universal Sticky Bottom Navigation Bar (ล็อคคงที่ด้านล่างสุดทุกอุปกรณ์) */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-[#D4AF37]/25 h-16 flex justify-around items-center z-50 px-2 shadow-[0_-5px_15px_-3px_rgba(0,0,0,0.05)]">
+      {/* 9. Universal Sticky Bottom Navigation Bar (ล็อคคงที่ถาวรที่ตำแหน่งด้านล่างสุดในทุกๆ อุปกรณ์ ไม่ลอยหรือเลื่อนตามหน้าจอ) */}
+      <div 
+        style={{ position: 'fixed', bottom: 0, left: 0, right: 0, transform: 'translate3d(0,0,0)' }}
+        className="bg-white/95 backdrop-blur-md border-t border-[#D4AF37]/25 h-16 flex justify-around items-center z-50 px-2 shadow-[0_-5px_15px_-3px_rgba(0,0,0,0.05)] select-none"
+      >
         <div className="max-w-3xl w-full mx-auto flex justify-around items-center h-full">
           {[
             { id: 'home', label: 'หน้าแรก', icon: Home },
@@ -377,7 +397,7 @@ export default function App() {
           })}
 
           {/* Exclusive matching admin backend tab */}
-          {currentUser?.role === 'Admin' && (
+          {(currentUser?.role === 'Admin' || currentUser?.role === 'WebsiteManager') && (
             <button
               onClick={() => {
                 setActiveTab('adminBackend');

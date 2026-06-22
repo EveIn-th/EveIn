@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Mail, Phone, Lock, User as UserIcon, Sparkles, X, ShieldAlert, HeartHandshake } from 'lucide-react';
 import { User, Role } from '../types';
+import { saveUserToFirestore } from '../lib/firebase';
 
 interface AuthViewProps {
   onAuthSuccess: (user: User) => void;
@@ -49,7 +50,7 @@ export default function AuthView({
       return;
     }
 
-    // Try finding matching mock user in database
+    // Try finding matching user in database
     let foundUser: User | undefined;
     if (loginMethod === 'email') {
       foundUser = allUsers.find(u => u.email.toLowerCase() === loginEmail.toLowerCase());
@@ -58,8 +59,23 @@ export default function AuthView({
     }
 
     if (foundUser) {
-      if (foundUser.email.toLowerCase() === 'adminpoei@evein.com') {
-        if (loginPassword !== 'Poei2411982A') {
+      // Check if user is banned or frozen
+      if (foundUser.isBanned) {
+        setFormError('คุณถูกแบนผู้ติดต่อ ฝ่ายบริการลูกค้า');
+        return;
+      }
+      if (foundUser.isFrozen) {
+        setFormError('บัญชีคุณถูกอายัดโปรดติดต่อฝ่ายบริการลูกค้า');
+        return;
+      }
+
+      if (foundUser.role === 'WebsiteManager') {
+        if (loginPassword !== foundUser.password) {
+          setFormError('รหัสผ่านผู้ดูแลระบบสูงสุดไม่ถูกต้อง การอนุญาตถูกปฏิเสธค่ะ');
+          return;
+        }
+      } else if (foundUser.email.toLowerCase() === 'adminpoei@evein.com') {
+        if (loginPassword !== 'Poei2411982A' && loginPassword !== foundUser.password) {
           setFormError('รหัสผ่านผู้ดูแลระบบสูงสุดไม่ถูกต้อง การอนุญาตถูกปฏิเสธค่ะ');
           return;
         }
@@ -80,7 +96,7 @@ export default function AuthView({
   };
 
   // REGISTER OPERATION
-  const handleRegisterSubmit = (e: React.FormEvent) => {
+  const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
 
@@ -115,6 +131,9 @@ export default function AuthView({
       email: regEmail,
       phone: regPhone,
       password: regPassword,
+      transactionPassword: '', // Default empty transaction password
+      isFrozen: false,
+      isBanned: false,
       bio: regRole === 'Brand' 
         ? 'แบรนด์ผู้สร้างสรรค์สินค้าเกรดพรีเมียม สมาชิกอย่างเป็นทางการของ EveIn'
         : 'ครีเอเตอร์/อินฟลูเอนเซอร์อิสระ ผู้ผ่านการลงทะเบียนแบบปลอดภัย',
@@ -128,10 +147,16 @@ export default function AuthView({
       bankAccount: '111-2-22222-2'
     };
 
-    allUsersSet(prev => [...prev, newUser]);
-    onAuthSuccess(newUser);
-    triggerToast('สมัครสมาชิกและยืนยันตัวตนสำเร็จแล้วค่ะ! ขอแสดงความยินดีในความร่วมมือ', 'success');
-    onClose();
+    try {
+      await saveUserToFirestore(newUser);
+      allUsersSet(prev => [...prev.filter(u => u.id !== newUser.id), newUser]);
+      onAuthSuccess(newUser);
+      triggerToast('สมัครสมาชิกและยืนยันตัวตนสำเร็จแล้วค่ะ! ขอแสดงความยินดีในความร่วมมือ', 'success');
+      onClose();
+    } catch (err) {
+      console.error("Signup error in Firestore:", err);
+      setFormError('เกิดข้อผิดพลาดในการบันทึกบัญชีของท่านไปยังฐานข้อมูล Firestore กรุณาลองใหม่อีกครั้งค่ะ');
+    }
   };
 
   const handlePhoneInput = (e: React.FormEvent<HTMLInputElement>) => {

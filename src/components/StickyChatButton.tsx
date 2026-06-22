@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { MessageSquare, X, Send, Sparkles, AlertCircle } from 'lucide-react';
 import { User } from '../types';
+import { addSupportMessageToFirestore } from '../lib/firebase';
 
 interface StickyChatButtonProps {
   currentUser: User | null;
@@ -58,7 +59,7 @@ export default function StickyChatButton({
     };
   }, []);
 
-  const handleSendMessage = (e: React.FormEvent) => {
+  const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputText.trim()) return;
 
@@ -66,15 +67,21 @@ export default function StickyChatButton({
     setInputText('');
 
     const newMsg = {
-      id: `sup_${Date.now()}`,
       senderId: mySenderId,
       senderName: currentUser?.brandName || currentUser?.username || 'ผู้เยี่ยมชม / Guest',
       text: userText,
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      isFromAdmin: false
+      isFromAdmin: false,
+      createdTimestamp: Date.now()
     };
 
-    setSupportHistory(prev => [...prev, newMsg]);
+    try {
+      await addSupportMessageToFirestore(newMsg);
+    } catch (err) {
+      console.error("Failed to post message to Firestore:", err);
+      // fallback in-memory update for offline safety
+      setSupportHistory(prev => [...prev, { ...newMsg, id: `sup_fallback_${Date.now()}` }]);
+    }
   };
 
   return (

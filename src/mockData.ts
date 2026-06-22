@@ -23,8 +23,8 @@ export const MOCK_USERS: User[] = [
   {
     id: 'admin_evein',
     username: 'Admin_Poei',
-    realName: 'แอดมินสูงสุด Poei',
-    role: 'Admin',
+    realName: 'ผู้ดูแลระบบสูงสุด Poei',
+    role: 'WebsiteManager',
     gender: 'LGBTQ',
     age: 35,
     email: 'adminpoei@evein.com',

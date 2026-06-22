@@ -1,4 +1,4 @@
-export type Role = 'Brand' | 'Influencer' | 'Admin';
+export type Role = 'Brand' | 'Influencer' | 'Admin' | 'WebsiteManager';
 
 export interface User {
   id: string;
@@ -10,6 +10,9 @@ export interface User {
   email: string;
   phone: string;
   password?: string;
+  transactionPassword?: string; // รหัสผ่านธุรกรรม
+  isFrozen?: boolean; // อายัดบัญชี
+  isBanned?: boolean; // แบนตลอดชีพ
   bio?: string;
   avatar?: string;
   lineId?: string;

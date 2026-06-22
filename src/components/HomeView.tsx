@@ -106,6 +106,113 @@ export default function HomeView({ onNavigate, onJoinUs, isLoggedIn }: HomeViewP
         </div>
       </section>
 
+      {/* 1.5 Luxury Announcement Poster - Campaign for Influencers */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="relative overflow-hidden rounded-3xl bg-neutral-950 border-2 border-[#D4AF37]/80 px-6 py-12 sm:p-14 text-center shadow-2xl">
+          {/* Subtle elegant shimmering background details */}
+          <div className="absolute inset-0 bg-gradient-to-tr from-amber-500/10 via-transparent to-neutral-950 opacity-90" />
+          <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[#D4AF37] to-transparent" />
+          
+          <div className="relative z-10 space-y-6 max-w-4xl mx-auto">
+            {/* Announcement Badge */}
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-neutral-900 border border-[#D4AF37]/50 shadow-inner">
+              <Trophy className="w-4 h-4 text-[#D3BC8E] animate-bounce" />
+              <span className="font-prompt text-[10px] sm:text-[11px] font-bold tracking-[0.15em] text-[#D4AF37] uppercase">
+                แคมเปญรางวัลพิเศษสำหรับเพื่อนพ้องครีเอเตอร์อินฟลูกลุ่มพรีเมียม
+              </span>
+            </div>
+
+            {/* Title / Main Hook */}
+            <h2 className="font-sans text-2xl sm:text-4xl font-extrabold text-white tracking-tight leading-tight uppercase">
+              ชวนรีวิวสร้างคอนเทนต์ท้าทายยอดฝีมือ <br />
+              <span className="bg-gradient-to-r from-[#F3E5AB] via-[#D4AF37] to-[#F3E5AB] bg-clip-text text-transparent drop-shadow-sm font-light">
+                ร่วมโปรโมตเปิดตัว <span className="font-bold">EVEIN</span> ชิงเงินแสนทันที!
+              </span>
+            </h2>
+
+            {/* Short Subtext */}
+            <p className="font-prompt text-xs sm:text-xs text-neutral-300 font-light max-w-2xl mx-auto leading-relaxed">
+              สิทธิประโยชน์สุดฟินสำหรับอินฟลูเอนเซอร์และคอนเทนต์ครีเอเตอร์ทุกท่าน! เพียงรีวิวหรือทำคลิปแนะนำแพลตฟอร์มแมตชิ่งสุดหรูของเรา คว้ารางวัลใหญ่พิเศษแบบไม่มีวันหมดอายุกิจกรรมจนกว่าจะหาแชมป์ครบแต่ละเงื่อนไข:
+            </p>
+
+            {/* Bento Grid Rewards Poster Items */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5 pt-4 text-neutral-100 select-none">
+              
+              {/* Reward 1 */}
+              <div className="relative flex flex-col justify-between p-5 rounded-2xl bg-neutral-900/90 border border-[#D4AF37]/35 hover:border-[#D4AF37] transition-all group duration-300">
+                <div className="absolute top-4 right-4 bg-[#D4AF37]/10 p-2 rounded-xl text-[#D4AF37]">
+                  <Users className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                </div>
+                <div className="text-left space-y-2 mt-2">
+                  <span className="block text-[8px] text-[#D3BC8E] font-bold uppercase tracking-widest font-prompt">รางวัลยอดสถิติตามรหัสคำเชิญ</span>
+                  <h3 className="font-prompt text-sm font-bold text-white">ชวนผู้ใช้งานสำเร็จสูงสุด</h3>
+                  <p className="font-prompt text-[11px] text-zinc-400 font-light leading-relaxed">
+                    อินฟลูท่านไหนที่รีวิวแล้ว <span className="text-[#D4AF37]">มีคนมาสมัครและใช้งานตามรหัสเชิญของคุณมากที่สุด</span> เพื่อรับความหรูหราทันสมัย
+                  </p>
+                </div>
+                <div className="mt-5 pt-3.5 border-t border-zinc-800 text-left">
+                  <span className="block text-[10px] text-zinc-500 font-semibold uppercase">รับเงินรางวัลสูงสุด</span>
+                  <span className="font-sans text-2xl font-black text-[#D4AF37]">50,000 <span className="text-xs text-white">บาท</span></span>
+                </div>
+              </div>
+
+              {/* Reward 2 */}
+              <div className="relative flex flex-col justify-between p-5 rounded-2xl bg-neutral-900/90 border-2 border-[#D4AF37] hover:border-gold-300 transition-all group duration-300 shadow-[0_0_20px_rgba(212,175,55,0.1)]">
+                <div className="absolute top-4 right-4 bg-[#D4AF37]/10 p-2 rounded-xl text-[#D4AF37]">
+                  <Award className="w-4 h-4 animate-pulse text-[#D4AF37]" />
+                </div>
+                <div className="text-left space-y-2 mt-2">
+                  <span className="block text-[8px] text-amber-400 font-bold uppercase tracking-widest font-prompt">รางวัลขวัญใจมิตรรักแฟนคลับ</span>
+                  <h3 className="font-prompt text-sm font-bold text-white">ยอดกดใจเยอะที่สุด (Top Likes)</h3>
+                  <p className="font-prompt text-[11px] text-zinc-300 font-light leading-relaxed">
+                    สร้างคลิปรีวิวแล้วโพสต์ลงหน้าโปรไฟล์โซเชียลของคุณ <span className="text-white font-medium">อินฟลูท่านไหนโกยคะแนนไลก์/กดใจเยอะที่สุด</span> ในบรรดาผู้สมัคร
+                  </p>
+                </div>
+                <div className="mt-5 pt-3.5 border-t border-[#D4AF37]/35 text-left">
+                  <span className="block text-[10px] text-zinc-400 font-semibold uppercase">รับเงินรางวัลกลับบ้าน</span>
+                  <span className="font-sans text-2xl font-black text-amber-400">30,000 <span className="text-xs text-white">บาท</span></span>
+                </div>
+              </div>
+
+              {/* Reward 3 */}
+              <div className="relative flex flex-col justify-between p-5 rounded-2xl bg-neutral-900/90 border border-[#D4AF37]/35 hover:border-[#D4AF37] transition-all group duration-300">
+                <div className="absolute top-4 right-4 bg-[#D4AF37]/10 p-2 rounded-xl text-[#D4AF37]">
+                  <Trophy className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                </div>
+                <div className="text-left space-y-2 mt-2">
+                  <span className="block text-[8px] text-[#D3BC8E] font-bold uppercase tracking-widest font-prompt">รางวัลยอดฝีมือไอเดียสร้างสรรค์</span>
+                  <h3 className="font-prompt text-sm font-bold text-white">คลิปถูกใจวิทยากรและผู้ชม</h3>
+                  <p className="font-prompt text-[11px] text-zinc-400 font-light leading-relaxed">
+                    ทำคลิปวีดีโอแนะนำโดนใจกรรมการและคนดูเฉียบขาดที่สุด <span className="text-white font-medium">แจกหนักจำนวน 5 ท่าน</span> รับสิทธิ์สะสมรางวัลอย่างทั่วถึง
+                  </p>
+                </div>
+                <div className="mt-5 pt-3.5 border-t border-zinc-800 text-left">
+                  <span className="block text-[10px] text-zinc-500 font-semibold">รับคนละ</span>
+                  <span className="font-sans text-2xl font-black text-[#D4AF37]">5,000 <span className="text-xs text-white">บาท</span></span>
+                  <span className="block text-[9px] text-zinc-650 mt-0.5">(แบ่งจ่ายพิเศษ 5 รางวัล รวม 25,000 บาท)</span>
+                </div>
+              </div>
+
+            </div>
+
+            {/* Campaign Information Footer info */}
+            <div className="pt-6 border-t border-zinc-900 text-center space-y-3 font-prompt">
+              <p className="text-[11px] text-zinc-400 font-normal leading-relaxed">
+                📢 <span className="text-[#D3BC8E]">เงื่อนไขการส่งร่วมแคมเปญ:</span> สามารถเริ่มทำการริวิวเผยแพร่ผลงานคลิปวีดีโอแนะนำได้เลยทันที! ไม่มีกำหนดวันปิดจัดกิจกรรม จนกว่าแอดมินแพลตฟอร์มจะสามารถเฟ้นหาอินฟลูเอนเซอร์ที่ผ่านข้อตกลงได้รับรางวัลครบทุกประเภทกิจกรรม
+              </p>
+              <button 
+                onClick={() => onNavigate('reviewJobs')}
+                className="inline-flex items-center gap-1.5 px-6 py-2.5 rounded-full bg-gradient-to-r from-neutral-100 to-neutral-200 text-neutral-900 hover:from-[#D4AF37] hover:to-[#B8860B] hover:text-white transition-all text-xs font-bold uppercase tracking-wider cursor-pointer shadow-md duration-300"
+              >
+                <span>เริ่มรับงานและโปรโมตสตอรีเลย!</span>
+                <ArrowUpRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
       {/* 2. Interactive Premium Events Slider */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="space-y-3 mb-6">
