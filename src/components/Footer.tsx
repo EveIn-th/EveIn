@@ -13,13 +13,33 @@ export default function Footer({ setActiveTab }: FooterProps) {
           
           {/* Brand Presentation */}
           <div className="md:col-span-1.5 space-y-4">
-            <div className="flex items-center gap-2 cursor-pointer" onClick={() => setActiveTab('home')}>
-              <div className="flex items-center justify-center w-8 h-8 rounded-full border border-[#D4AF37]/40">
-                <Sparkles className="w-4 h-4 text-[#D3BC8E]" />
+            <div 
+              onClick={() => {
+                setActiveTab('home');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }} 
+              className="flex items-center gap-2.5 cursor-pointer group select-none"
+              title="EveIn Premium Event Matching"
+            >
+              <div className="relative flex items-center justify-center w-9 h-9 rounded-lg bg-gradient-to-br from-neutral-900 to-neutral-800 border border-[#D4AF37]/80 shadow-md overflow-hidden group-hover:border-gold-300 transition-all font-serif">
+                {/* Luxury shimmering backdrop */}
+                <div className="absolute inset-0 bg-gradient-to-tr from-gold-500/10 via-transparent to-gold-400/20" />
+                
+                {/* Monogram letters */}
+                <span className="text-sm font-bold tracking-tighter text-[#D4AF37] font-serif select-none select-none">E</span>
+                <span className="text-[10px] font-semibold tracking-tighter text-white -ml-0.5 mt-1.5 select-none">i</span>
+                
+                {/* Sparkling effect representing curated events */}
+                <div className="absolute top-1 right-1">
+                  <Sparkles className="w-1.5 h-1.5 text-[#D4AF37] animate-pulse" />
+                </div>
               </div>
-              <span className="font-sans text-xl font-light tracking-[0.1em] text-white">
-                Eve<span className="text-[#D4AF37] font-semibold">In</span>
-              </span>
+              <div className="flex flex-col">
+                <span className="text-lg font-extrabold tracking-widest text-[#ffffff] leading-none mb-0.5 flex items-center">
+                  EVE<span className="text-[#D4AF37] font-light">IN</span>
+                </span>
+                <span className="text-[7px] font-bold tracking-[0.25em] text-neutral-500 uppercase leading-none">Premium Matching</span>
+              </div>
             </div>
             
             <p className="text-xs text-neutral-400 leading-relaxed font-light">

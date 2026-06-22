@@ -75,17 +75,35 @@ export default function Header({
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-20">
           
-          {/* Logo */}
+          {/* Custom Elegant Logo related to EveIn (Event + Influencer) */}
           <div 
-            onClick={() => setActiveTab('home')} 
-            className="flex items-center gap-2 cursor-pointer group"
+            onClick={() => {
+              setActiveTab('home');
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }} 
+            className="flex items-center gap-2.5 cursor-pointer group select-none"
+            title="EveIn Premium Event Matching"
           >
-            <div className="relative flex items-center justify-center w-10 h-10 rounded-full border border-gold-300 gold-hover-glow transition-all bg-white shadow-xs">
-              <Sparkles className="w-5 h-5 text-gold-500 group-hover:scale-110 transition-transform" />
+            <div className="relative flex items-center justify-center w-11 h-11 rounded-xl bg-gradient-to-br from-neutral-900 to-neutral-800 border-2 border-[#D4AF37] shadow-md overflow-hidden group-hover:border-gold-300 transition-all font-serif">
+              {/* Luxury shimmering backdrop */}
+              <div className="absolute inset-0 bg-gradient-to-tr from-gold-500/10 via-transparent to-gold-400/20" />
+              <div className="absolute inset-0 bg-gold-400/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              
+              {/* Monogram letters */}
+              <span className="text-lg font-bold tracking-tighter text-[#D4AF37] font-serif select-none group-hover:scale-105 transition-transform duration-300">E</span>
+              <span className="text-xs font-semibold tracking-tighter text-white -ml-0.5 mt-2 select-none group-hover:scale-110 transition-transform duration-300">i</span>
+              
+              {/* Sparkling effect representing curated events */}
+              <div className="absolute top-1.5 right-1.5">
+                <Sparkles className="w-2.5 h-2.5 text-[#D4AF37] animate-pulse" />
+              </div>
             </div>
-            <span className="text-3xl font-bold tracking-tighter gold-text" style={{ fontFamily: "'Montserrat', 'Prompt', sans-serif" }}>
-              EveIn
-            </span>
+            <div className="flex flex-col">
+              <span className="text-[22px] font-extrabold tracking-widest text-[#1a1a1a] leading-none mb-0.5 flex items-center">
+                EVE<span className="text-[#D4AF37] font-light">IN</span>
+              </span>
+              <span className="text-[8px] font-bold tracking-[0.25em] text-neutral-400 uppercase leading-none">Premium Matching</span>
+            </div>
           </div>
 
           {/* Desktop Navigation */}
@@ -126,18 +144,6 @@ export default function Header({
                 <span>ตัวจัดการเว็บไซต์</span>
               </button>
             )}
-
-            {/* General Contact Admin Support Button */}
-            <button
-              onClick={() => {
-                window.dispatchEvent(new CustomEvent('open-evein-chat'));
-              }}
-              className="flex items-center gap-1.5 px-4.5 py-2 text-xs font-bold text-amber-700 bg-amber-500/5 hover:bg-amber-500/10 hover:text-amber-800 border border-amber-600/20 hover:border-amber-600/40 rounded-full transition-all cursor-pointer font-prompt"
-              title="ติดต่อทีมพัฒนาดูแลระบบ 24 ชั่วโมง"
-            >
-              <MessageSquare className="w-3.5 h-3.5 text-amber-500 animate-pulse" />
-              <span>ติดต่อแอดมิน</span>
-            </button>
           </nav>
 
           {/* Right Accessories */}
@@ -323,22 +329,8 @@ export default function Header({
               </>
             )}
 
-            {/* Contact Admin support options in mobile drawer */}
-          <button
-            onClick={() => {
-              window.dispatchEvent(new CustomEvent('open-evein-chat'));
-              setMobileMenuOpen(false);
-            }}
-            className="w-full flex items-center justify-between px-4 py-3 rounded-lg text-sm font-bold tracking-wide transition-all border border-amber-600/30 bg-amber-50 text-amber-800 hover:bg-amber-100"
-          >
-            <div className="flex items-center gap-2">
-              <MessageSquare className="w-4 h-4 text-amber-500 shrink-0" />
-              <span>ติดต่อฝ่ายช่วยเหลือแอดมิน</span>
-            </div>
-            <Sparkles className="w-4 h-4 text-amber-500 animate-pulse" />
-          </button>
 
-          {!currentUser && (
+            {!currentUser && (
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setShowAuthModal('login')}
@@ -415,21 +407,6 @@ export default function Header({
               <Sparkles className="w-4 h-4 text-[#D4AF37] animate-pulse" />
             </button>
           )}
-
-          {/* Contact Admin support options in mobile drawer */}
-          <button
-            onClick={() => {
-              window.dispatchEvent(new CustomEvent('open-evein-chat'));
-              setMobileMenuOpen(false);
-            }}
-            className="w-full flex items-center justify-between px-4 py-3 rounded-lg text-sm font-bold tracking-wide transition-all border border-amber-600/30 bg-amber-50 text-amber-800 hover:bg-amber-100 cursor-pointer"
-          >
-            <div className="flex items-center gap-2 font-prompt">
-              <MessageSquare className="w-4 h-4 text-amber-500 shrink-0" />
-              <span>ติดต่อฝ่ายช่วยเหลือแอดมิน</span>
-            </div>
-            <Sparkles className="w-4 h-4 text-amber-500 animate-pulse" />
-          </button>
           
           {!currentUser && (
             <div className="grid grid-cols-2 gap-2 pt-3 border-t border-neutral-100">

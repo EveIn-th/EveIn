@@ -80,24 +80,22 @@ export default function StickyChatButton({
   return (
     <>
       {/* Absolute floating button */}
-      <div className="fixed bottom-6 right-6 z-50">
+      <div className="fixed bottom-20 md:bottom-6 right-6 z-40">
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className={`flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-gold-500 to-amber-600 hover:from-gold-600 hover:to-amber-700 text-white rounded-full shadow-2xl hover:shadow-gold-500/30 transition-all transform hover:scale-105 active:scale-95 duration-200 cursor-pointer ${
-            isOpen ? 'rotate-90 bg-neutral-900 border border-gold-300' : ''
+          className={`flex items-center gap-1.5 px-4.5 py-2.5 rounded-full transition-all font-prompt shadow-xl border cursor-pointer transform hover:scale-105 active:scale-95 duration-250 ${
+            isOpen 
+              ? 'bg-neutral-950 text-white border border-[#D4AF37]/50'
+              : 'bg-amber-500/5 hover:bg-amber-500/10 text-amber-700 hover:text-amber-800 border-amber-600/25 hover:border-amber-600/45 shadow-amber-500/5'
           }`}
           aria-label="ติดต่อเจ้าหน้าที่ช่วยเหลือ"
         >
           {isOpen ? (
-            <X className="w-5 h-5 text-white" />
+            <X className="w-4 h-4" />
           ) : (
-            <div className="flex items-center gap-2">
-              <span className="relative flex h-2.5 w-2.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cream-100 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-white"></span>
-              </span>
-              <MessageSquare className="w-5 h-5" />
-              <span className="text-xs font-semibold font-prompt tracking-wider hidden sm:inline">ติดต่อแอดมิน</span>
+            <div className="flex items-center gap-1.5">
+              <MessageSquare className="w-3.5 h-3.5 text-amber-500 animate-pulse" />
+              <span className="text-xs font-bold tracking-wider text-amber-700">ติดต่อฝ่ายช่วยเหลือแอดมิน</span>
             </div>
           )}
         </button>
