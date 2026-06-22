@@ -13,6 +13,7 @@ import {
   deleteDoc,
   where
 } from "firebase/firestore";
+import { getAuth } from "firebase/auth";
 import { User, EventItem, JobItem, JobApplication } from "../types";
 import { MOCK_USERS, INITIAL_EVENTS, INITIAL_JOBS } from "../mockData";
 
@@ -31,6 +32,55 @@ const app = initializeApp(firebaseConfig);
 
 // Initialize Firestore with the custom databaseId provided in metadata config
 export const db = getFirestore(app, "ai-studio-47cdf789-4710-42ec-bbd4-cea522efd00b");
+export const auth = getAuth(app);
+
+// Error handling structures as mandated by the firebase-integration skill
+export enum OperationType {
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  LIST = 'list',
+  GET = 'get',
+  WRITE = 'write',
+}
+
+interface FirestoreErrorInfo {
+  error: string;
+  operationType: OperationType;
+  path: string | null;
+  authInfo: {
+    userId?: string | null;
+    email?: string | null;
+    emailVerified?: boolean | null;
+    isAnonymous?: boolean | null;
+    tenantId?: string | null;
+    providerInfo?: {
+      providerId?: string | null;
+      email?: string | null;
+    }[];
+  }
+}
+
+function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const errInfo: FirestoreErrorInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    authInfo: {
+      userId: auth.currentUser?.uid,
+      email: auth.currentUser?.email,
+      emailVerified: auth.currentUser?.emailVerified,
+      isAnonymous: auth.currentUser?.isAnonymous,
+      tenantId: auth.currentUser?.tenantId,
+      providerInfo: auth.currentUser?.providerData?.map(provider => ({
+        providerId: provider.providerId,
+        email: provider.email,
+      })) || []
+    },
+    operationType,
+    path
+  };
+  console.error('Firestore Error: ', JSON.stringify(errInfo));
+  throw new Error(JSON.stringify(errInfo));
+}
 
 /**
  * Seeding helper to pre-populate database if empty.
@@ -40,31 +90,64 @@ export async function seedDatabaseIfEmpty() {
   try {
     // 1. Seed Users
     const usersColl = collection(db, "users");
-    const userSnap = await getDocs(usersColl);
+    let userSnap;
+    try {
+      userSnap = await getDocs(usersColl);
+    } catch (err) {
+      handleFirestoreError(err, OperationType.GET, "users");
+      return;
+    }
+
     if (userSnap.empty) {
       console.log("Seeding mock users to Firestore...");
       for (const u of MOCK_USERS) {
-        await setDoc(doc(db, "users", u.id), u);
+        try {
+          await setDoc(doc(db, "users", u.id), u);
+        } catch (err) {
+          handleFirestoreError(err, OperationType.WRITE, `users/${u.id}`);
+        }
       }
     }
 
     // 2. Seed Events
     const eventsColl = collection(db, "events");
-    const eventSnap = await getDocs(eventsColl);
+    let eventSnap;
+    try {
+      eventSnap = await getDocs(eventsColl);
+    } catch (err) {
+      handleFirestoreError(err, OperationType.GET, "events");
+      return;
+    }
+
     if (eventSnap.empty) {
       console.log("Seeding mock events to Firestore...");
       for (const e of INITIAL_EVENTS) {
-        await setDoc(doc(db, "events", e.id), e);
+        try {
+          await setDoc(doc(db, "events", e.id), e);
+        } catch (err) {
+          handleFirestoreError(err, OperationType.WRITE, `events/${e.id}`);
+        }
       }
     }
 
     // 3. Seed Jobs
     const jobsColl = collection(db, "jobs");
-    const jobSnap = await getDocs(jobsColl);
+    let jobSnap;
+    try {
+      jobSnap = await getDocs(jobsColl);
+    } catch (err) {
+      handleFirestoreError(err, OperationType.GET, "jobs");
+      return;
+    }
+
     if (jobSnap.empty) {
       console.log("Seeding mock jobs to Firestore...");
       for (const j of INITIAL_JOBS) {
-        await setDoc(doc(db, "jobs", j.id), j);
+        try {
+          await setDoc(doc(db, "jobs", j.id), j);
+        } catch (err) {
+          handleFirestoreError(err, OperationType.WRITE, `jobs/${j.id}`);
+        }
       }
     }
   } catch (error) {
@@ -77,7 +160,13 @@ export async function seedDatabaseIfEmpty() {
 // 1. Users Firestore API
 export async function fetchAllUsers(): Promise<User[]> {
   try {
-    const snap = await getDocs(collection(db, "users"));
+    let snap;
+    try {
+      snap = await getDocs(collection(db, "users"));
+    } catch (err) {
+      handleFirestoreError(err, OperationType.GET, "users");
+      return [];
+    }
     const list: User[] = [];
     snap.forEach((d) => {
       list.push({ id: d.id, ...d.data() } as User);
@@ -93,7 +182,7 @@ export async function saveUserToFirestore(user: User): Promise<void> {
   try {
     await setDoc(doc(db, "users", user.id), user);
   } catch (err) {
-    console.error("Error saving user:", err);
+    handleFirestoreError(err, OperationType.WRITE, `users/${user.id}`);
   }
 }
 
@@ -104,7 +193,9 @@ export function subscribeUsers(callback: (users: User[]) => void) {
       list.push({ id: d.id, ...d.data() } as User);
     });
     callback(list);
-  }, (err) => console.error("Error watching users snapshot:", err));
+  }, (err) => {
+    handleFirestoreError(err, OperationType.GET, "users");
+  });
 }
 
 // 2. Events Firestore API
@@ -112,7 +203,7 @@ export async function saveEventToFirestore(event: EventItem): Promise<void> {
   try {
     await setDoc(doc(db, "events", event.id), event);
   } catch (err) {
-    console.error("Error saving event:", err);
+    handleFirestoreError(err, OperationType.WRITE, `events/${event.id}`);
   }
 }
 
@@ -125,7 +216,9 @@ export function subscribeEvents(callback: (events: EventItem[]) => void) {
     // Sort recently created event first
     list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     callback(list);
-  }, (err) => console.error("Error watching events snapshot:", err));
+  }, (err) => {
+    handleFirestoreError(err, OperationType.GET, "events");
+  });
 }
 
 // 3. Jobs Firestore API
@@ -133,7 +226,7 @@ export async function saveJobToFirestore(job: JobItem): Promise<void> {
   try {
     await setDoc(doc(db, "jobs", job.id), job);
   } catch (err) {
-    console.error("Error saving job:", err);
+    handleFirestoreError(err, OperationType.WRITE, `jobs/${job.id}`);
   }
 }
 
@@ -146,7 +239,9 @@ export function subscribeJobs(callback: (jobs: JobItem[]) => void) {
     // Sort recently created jobs first
     list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     callback(list);
-  }, (err) => console.error("Error watching jobs snapshot:", err));
+  }, (err) => {
+    handleFirestoreError(err, OperationType.GET, "jobs");
+  });
 }
 
 // 4. Job Applications Firestore API
@@ -154,7 +249,7 @@ export async function saveApplicationToFirestore(app: JobApplication): Promise<v
   try {
     await setDoc(doc(db, "applications", app.id), app);
   } catch (err) {
-    console.error("Error saving application:", err);
+    handleFirestoreError(err, OperationType.WRITE, `applications/${app.id}`);
   }
 }
 
@@ -165,20 +260,21 @@ export function subscribeApplications(callback: (apps: JobApplication[]) => void
       list.push({ id: d.id, ...d.data() } as JobApplication);
     });
     callback(list);
-  }, (err) => console.error("Error watching applications snapshot:", err));
+  }, (err) => {
+    handleFirestoreError(err, OperationType.GET, "applications");
+  });
 }
 
 export async function deleteUserFromFirestore(id: string): Promise<void> {
   try {
     await deleteDoc(doc(db, "users", id));
   } catch (err) {
-    console.error("Error deleting user:", err);
+    handleFirestoreError(err, OperationType.DELETE, `users/${id}`);
   }
 }
 
 // 5. Support History / Messages Firestore API (Live Support Chat)
 export function subscribeSupportMessages(callback: (messages: any[]) => void) {
-  // Ordered by a custom numeric timestamp or just client sorted so it's simple
   return onSnapshot(collection(db, "support_messages"), (snap) => {
     const list: any[] = [];
     snap.forEach((d) => {
@@ -191,7 +287,9 @@ export function subscribeSupportMessages(callback: (messages: any[]) => void) {
       return timeA - timeB;
     });
     callback(list);
-  }, (err) => console.error("Error watching support messages:", err));
+  }, (err) => {
+    handleFirestoreError(err, OperationType.GET, "support_messages");
+  });
 }
 
 export async function addSupportMessageToFirestore(message: {
@@ -210,6 +308,6 @@ export async function addSupportMessageToFirestore(message: {
       id
     });
   } catch (err) {
-    console.error("Error adding support message:", err);
+    handleFirestoreError(err, OperationType.WRITE, `support_messages/${message.id}`);
   }
 }
