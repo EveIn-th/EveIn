@@ -1,0 +1,123 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User or member profile in the application",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "username": { "type": "string" },
+        "realName": { "type": "string" },
+        "phone": { "type": "string" },
+        "password": { "type": "string" },
+        "transactionPassword": { "type": "string" },
+        "email": { "type": "string" },
+        "role": { "type": "string" },
+        "isFrozen": { "type": "boolean" },
+        "isBanned": { "type": "boolean" },
+        "gender": { "type": "string" },
+        "age": { "type": "number" },
+        "bio": { "type": "string" },
+        "avatar": { "type": "string" },
+        "brandName": { "type": "string" },
+        "bankName": { "type": "string" },
+        "bankAccount": { "type": "string" }
+      },
+      "required": ["id", "username", "phone", "password", "role"]
+    },
+    "EventItem": {
+      "title": "EventItem",
+      "description": "Luxury product matching events and tasks",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "brandName": { "type": "string" },
+        "rewardAmount": { "type": "number" },
+        "comissionRate": { "type": "number" },
+        "requiredFollowers": { "type": "number" },
+        "category": { "type": "string" },
+        "image": { "type": "string" },
+        "logo": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "status": { "type": "string" }
+      },
+      "required": ["id", "title", "rewardAmount", "createdAt"]
+    },
+    "JobItem": {
+      "title": "JobItem",
+      "description": "Product promotion job details",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "brandName": { "type": "string" },
+        "rewardAmount": { "type": "number" },
+        "category": { "type": "string" },
+        "image": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "status": { "type": "string" }
+      },
+      "required": ["id", "title", "rewardAmount", "createdAt"]
+    },
+    "JobApplication": {
+      "title": "JobApplication",
+      "description": "Influencer application for events or promotion jobs",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "jobId": { "type": "string" },
+        "jobTitle": { "type": "string" },
+        "influencerId": { "type": "string" },
+        "influencerName": { "type": "string" },
+        "appliedAt": { "type": "string" },
+        "status": { "type": "string" },
+        "priceRange": { "type": "string" },
+        "progressStep": { "type": "number" },
+        "isOrderGenerated": { "type": "boolean" },
+        "hasPendingReview": { "type": "boolean" },
+        "isCompleted": { "type": "boolean" }
+      },
+      "required": ["id", "jobId", "influencerId", "status", "appliedAt"]
+    },
+    "SupportMessage": {
+      "title": "SupportMessage",
+      "description": "Customer support and operation messages",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "senderId": { "type": "string" },
+        "senderName": { "type": "string" },
+        "text": { "type": "string" },
+        "time": { "type": "string" },
+        "isFromAdmin": { "type": "boolean" },
+        "createdTimestamp": { "type": "number" }
+      },
+      "required": ["senderId", "senderName", "text", "isFromAdmin", "createdTimestamp"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Stores user, member, administration and partner records"
+    },
+    "/events/{eventId}": {
+      "schema": "EventItem",
+      "description": "Product tasks and reward events"
+    },
+    "/jobs/{jobId}": {
+      "schema": "JobItem",
+      "description": "Product promotion jobs available for matching"
+    },
+    "/applications/{applicationId}": {
+      "schema": "JobApplication",
+      "description": "Applications submitted by influencers for events or jobs"
+    },
+    "/support_messages/{messageId}": {
+      "schema": "SupportMessage",
+      "description": "Messages for operations of Live Customer Support Chat"
+    }
+  }
+}
