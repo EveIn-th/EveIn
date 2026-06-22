@@ -384,6 +384,26 @@ export async function deleteUserFromFirestore(id: string): Promise<void> {
   });
 }
 
+export async function deleteEventFromFirestore(id: string): Promise<void> {
+  return runWithFallback(async () => {
+    try {
+      await deleteDoc(doc(db, "events", id));
+    } catch (err) {
+      handleFirestoreError(err, OperationType.DELETE, `events/${id}`);
+    }
+  });
+}
+
+export async function deleteJobFromFirestore(id: string): Promise<void> {
+  return runWithFallback(async () => {
+    try {
+      await deleteDoc(doc(db, "jobs", id));
+    } catch (err) {
+      handleFirestoreError(err, OperationType.DELETE, `jobs/${id}`);
+    }
+  });
+}
+
 // 5. Support History / Messages Firestore API (Live Support Chat)
 export function subscribeSupportMessages(callback: (messages: any[]) => void) {
   let unsubscribe: (() => void) | null = null;

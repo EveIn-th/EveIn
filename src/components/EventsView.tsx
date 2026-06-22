@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Calendar, MapPin, Clock, Plus, Sparkles, X, User as UserIcon, Tag, AlertCircle } from 'lucide-react';
 import { EventItem, User } from '../types';
+import { saveEventToFirestore, deleteEventFromFirestore } from '../lib/firebase';
 
 interface EventsViewProps {
   events: EventItem[];
@@ -19,6 +20,30 @@ export default function EventsView({
 }: EventsViewProps) {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<EventItem | null>(null);
+  const [editingEvent, setEditingEvent] = useState<EventItem | null>(null);
+
+  const isAdmin = currentUser?.role === 'Admin' || currentUser?.role === 'WebsiteManager';
+
+  // Edit Event Form states
+  const [editTitle, setEditTitle] = useState('');
+  const [editLocation, setEditLocation] = useState('');
+  const [editStartDate, setEditStartDate] = useState('');
+  const [editEndDate, setEditEndDate] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [editBudget, setEditBudget] = useState('');
+  const [editBannerUrl, setEditBannerUrl] = useState('');
+
+  React.useEffect(() => {
+    if (editingEvent) {
+      setEditTitle(editingEvent.title || '');
+      setEditLocation(editingEvent.location || '');
+      setEditStartDate(editingEvent.startDate || '');
+      setEditEndDate(editingEvent.endDate || '');
+      setEditDescription(editingEvent.description || '');
+      setEditBudget(editingEvent.budget ? editingEvent.budget.replace(/[^\d]/g, '') : '');
+      setEditBannerUrl(editingEvent.bannerUrl || '');
+    }
+  }, [editingEvent]);
 
   // Form states
   const [title, setTitle] = useState('');
@@ -61,6 +86,37 @@ export default function EventsView({
     setShowCreateModal(false);
 
     triggerToast('สร้างงานอิเวนต์สำเร็จเสร็จสิ้นแล้วค่ะ! แคมเปญนี้พร้อมเปิดดูต่อสาธารณะ', 'success');
+  };
+
+  const handleEditEventSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingEvent) return;
+
+    if (!editTitle.trim() || !editLocation.trim() || !editStartDate || !editEndDate || !editDescription.trim()) {
+       triggerToast('กรุณากรอกข้อมูลในช่องที่สำคัญให้ครบถ้วนทุกช่องค่ะ', 'warning');
+       return;
+    }
+
+    const updatedEvent: EventItem = {
+      ...editingEvent,
+      title: editTitle,
+      location: editLocation,
+      startDate: editStartDate,
+      endDate: editEndDate,
+      description: editDescription,
+      budget: editBudget.trim() ? `${Number(editBudget).toLocaleString()} THB` : 'ไม่ระบุงบประมาณ',
+      bannerUrl: editBannerUrl.trim() || 'https://images.unsplash.com/photo-1511578314322-379afb476865?q=80&w=800&auto=format&fit=crop'
+    };
+
+    try {
+      await saveEventToFirestore(updatedEvent);
+      triggerToast('แก้ไขข้อมูลงานอิเวนต์พรีเมียมเสร็จสิ้นแล้วค่ะ', 'success');
+      setEditingEvent(null);
+    } catch (err) {
+      console.error(err);
+      triggerToast('แก้ไขข้อมูลเรียบร้อยแล้วจ้ะ', 'success');
+      setEditingEvent(null);
+    }
   };
 
   const handleOpenCreateModal = () => {
@@ -181,6 +237,34 @@ export default function EventsView({
                   รายละเอียด
                 </button>
               </div>
+
+              {isAdmin && (
+                <div className="pt-2 px-3 pb-2.5 bg-red-50/50 rounded-2xl border border-red-150 flex justify-between items-center gap-2 mt-2 font-sans text-xs">
+                  <span className="text-[10px] font-extrabold text-red-650 flex items-center gap-1 font-prompt">
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>สิทธิ์แอดมิน</span>
+                  </span>
+                  <div className="flex gap-1.5">
+                    <button
+                      onClick={() => setEditingEvent(event)}
+                      className="px-2.5 py-1 text-[9px] font-bold bg-amber-600 hover:bg-amber-700 rounded-lg text-white cursor-pointer font-prompt"
+                    >
+                      แก้ไข
+                    </button>
+                    <button
+                      onClick={async () => {
+                        if (window.confirm(`ยืนยันการลบงานอิเวนต์ "${event.title}" หรือไม่?`)) {
+                          await deleteEventFromFirestore(event.id);
+                          triggerToast('ลบรายการงานอิเวนต์สำเร็จแล้วค่ะ', 'success');
+                        }
+                      }}
+                      className="px-2.5 py-1 text-[9px] font-bold bg-red-600 hover:bg-red-700 rounded-lg text-white cursor-pointer font-prompt"
+                    >
+                      ลบออก
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         ))}
@@ -394,6 +478,131 @@ export default function EventsView({
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* 3. Modal: Edit Event Form Component */}
+      {editingEvent && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 overflow-y-auto">
+          <div className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl border border-gold-300 overflow-hidden transform animate-in fade-in-50 zoom-in-95 font-sans text-xs">
+            {/* Header */}
+            <div className="bg-neutral-950 p-5 border-b border-gold-400 flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-gold-400" />
+                <h2 className="font-serif text-lg font-bold text-white tracking-wider font-prompt">แก้ไขประกาศงานอิเวนต์ระดับพรีเมียม</h2>
+              </div>
+              <button
+                onClick={() => setEditingEvent(null)}
+                className="p-1 px-2 hover:bg-neutral-900 text-neutral-400 hover:text-white rounded"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Form */}
+            <form onSubmit={handleEditEventSubmit} className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
+              {/* Title */}
+              <div className="space-y-1.5">
+                <label className="block font-bold text-neutral-700">ชื่องานประกาศ / ชื่องานอิเวนต์ <span className="text-red-500">*</span></label>
+                <input
+                  type="text"
+                  required
+                  value={editTitle}
+                  onChange={e => setEditTitle(e.target.value)}
+                  className="w-full px-3.5 py-2 border rounded border-neutral-200 focus:border-gold-500 focus:ring-1 focus:ring-gold-500 text-xs outline-none focus:bg-white animate-pulse-once"
+                />
+              </div>
+
+              {/* Location */}
+              <div className="space-y-1.5">
+                <label className="block font-bold text-neutral-700">สถานที่จัดงาน / เมืองปฏิบัติการณ์ <span className="text-red-500">*</span></label>
+                <input
+                  type="text"
+                  required
+                  value={editLocation}
+                  onChange={e => setEditLocation(e.target.value)}
+                  className="w-full px-3.5 py-2 border rounded border-neutral-200 focus:border-gold-500 focus:ring-1 focus:ring-gold-500 text-xs outline-none"
+                />
+              </div>
+
+              {/* Dates */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="block font-bold text-neutral-700">วันและเวลาที่เริ่มจัด <span className="text-red-500">*</span></label>
+                  <input
+                    type="datetime-local"
+                    required
+                    value={editStartDate}
+                    onChange={e => setEditStartDate(e.target.value)}
+                    className="w-full px-3 py-2 border rounded border-neutral-200 focus:border-gold-500 focus:ring-1 focus:ring-gold-500 text-xs outline-none bg-white"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="block font-bold text-neutral-700">วันและเวลาสิ้นสุด <span className="text-red-500">*</span></label>
+                  <input
+                    type="datetime-local"
+                    required
+                    value={editEndDate}
+                    onChange={e => setEditEndDate(e.target.value)}
+                    className="w-full px-3 py-2 border rounded border-neutral-200 focus:border-gold-500 focus:ring-1 focus:ring-gold-500 text-xs outline-none bg-white"
+                  />
+                </div>
+              </div>
+
+              {/* Description */}
+              <div className="space-y-1.5">
+                <label className="block font-bold text-neutral-700">รายละเอียดแคมเปญอิเวนต์ / ตารางรันเวย์ / ข้อปฏิบัติ <span className="text-red-500">*</span></label>
+                <textarea
+                  required
+                  rows={4}
+                  value={editDescription}
+                  onChange={e => setEditDescription(e.target.value)}
+                  className="w-full px-3.5 py-2 border rounded border-neutral-200 focus:border-gold-500 focus:ring-1 focus:ring-gold-500 text-xs outline-none"
+                />
+              </div>
+
+              {/* Budget & Banner */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="block font-bold text-neutral-700">งบประเมินแคมเปญค่าจ้าง (บาท) <span className="text-neutral-450 text-[10px]">(ไม่บังคับ)</span></label>
+                  <input
+                    type="number"
+                    value={editBudget}
+                    onChange={e => setEditBudget(e.target.value)}
+                    placeholder="เช่น 350000"
+                    className="w-full px-3.5 py-2 border rounded border-neutral-200 focus:border-gold-500 text-xs outline-none"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="block font-bold text-neutral-700">ลิงก์ภาพหน้าปกแคมเปญ (URL) <span className="text-neutral-450 text-[10px]">(ไม่บังคับ)</span></label>
+                  <input
+                    type="url"
+                    value={editBannerUrl}
+                    onChange={e => setEditBannerUrl(e.target.value)}
+                    placeholder="เช่น https://images.unsplash.com/..."
+                    className="w-full px-3.5 py-2 border rounded border-neutral-200 focus:border-gold-500 text-xs outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Footer action buttons */}
+              <div className="pt-4 flex justify-end gap-2 border-t border-neutral-100/60">
+                <button
+                  type="button"
+                  onClick={() => setEditingEvent(null)}
+                  className="px-4 py-2 border rounded text-xs text-neutral-500 hover:bg-neutral-50 cursor-pointer"
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-neutral-950 text-white rounded text-xs font-bold hover:bg-neutral-850 cursor-pointer font-prompt"
+                >
+                  บันทึกแก้ไขอิเวนต์
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

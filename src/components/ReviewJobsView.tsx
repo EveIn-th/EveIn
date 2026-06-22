@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Briefcase, MapPin, Filter, Plus, CheckSquare, Square, Check, ArrowUpRight, ShieldAlert, Sparkles, X, Target } from 'lucide-react';
 import { JobItem, User, JobApplication } from '../types';
 import { THAI_PROVINCES } from '../mockData';
+import { saveJobToFirestore, deleteJobFromFirestore } from '../lib/firebase';
 
 interface ReviewJobsViewProps {
   jobs: JobItem[];
@@ -23,6 +24,32 @@ export default function ReviewJobsView({
   setShowAuthModal,
 }: ReviewJobsViewProps) {
   const [showPostModal, setShowPostModal] = useState(false);
+  const [editingJob, setEditingJob] = useState<JobItem | null>(null);
+
+  // Job Editing Modal States
+  const [editTitle, setEditTitle] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [editProvince, setEditProvince] = useState('กรุงเทพมหานคร');
+  const [editCategory, setEditCategory] = useState('เครื่องสำอาง');
+  const [editAgeRange, setEditAgeRange] = useState('18-23');
+  const [editGenderRequired, setEditGenderRequired] = useState<'All' | 'Male' | 'Female' | 'LGBTQ'>('All');
+  const [editFollowerRange, setEditFollowerRange] = useState('All');
+  const [editBudget, setEditBudget] = useState('');
+  const [editPlatforms, setEditPlatforms] = useState<('Tiktok' | 'Facebook' | 'Instagram' | 'YouTube')[]>([]);
+
+  React.useEffect(() => {
+    if (editingJob) {
+      setEditTitle(editingJob.title || '');
+      setEditDescription(editingJob.description || '');
+      setEditProvince(editingJob.province || 'กรุงเทพมหานคร');
+      setEditCategory(editingJob.category || 'เครื่องสำอาง');
+      setEditAgeRange(editingJob.ageRange || '18-23');
+      setEditGenderRequired(editingJob.genderRequired || 'All');
+      setEditFollowerRange(editingJob.followerRange || 'All');
+      setEditBudget(String(editingJob.budget || ''));
+      setEditPlatforms(editingJob.platforms || []);
+    }
+  }, [editingJob]);
 
   // Filter States
   const [selectedProvince, setSelectedProvince] = useState('ทุกจังหวัด');
@@ -91,9 +118,12 @@ export default function ReviewJobsView({
     );
   };
 
-  const handlePostJob = (e: React.FormEvent) => {
+  const isAdmin = currentUser?.role === 'Admin' || currentUser?.role === 'WebsiteManager';
+  const isBrand = currentUser?.role === 'Brand' || isAdmin;
+
+  const handlePostJob = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!currentUser || (currentUser.role !== 'Brand' && currentUser.role !== 'Admin')) {
+    if (!currentUser || (!isBrand && !isAdmin)) {
       triggerToast('บัญชีของท่านต้องเป็นสิทธิ์แบรนด์หรือผู้ดูแลสูงสุดสำหรับการประกาศงานค่ะ', 'warning');
       return;
     }
@@ -120,7 +150,13 @@ export default function ReviewJobsView({
       createdAt: new Date().toISOString()
     };
 
-    setJobs(prev => [newJob, ...prev]);
+    try {
+      await saveJobToFirestore(newJob);
+      setJobs(prev => [newJob, ...prev]);
+    } catch (err) {
+      console.error(err);
+      setJobs(prev => [newJob, ...prev]);
+    }
 
     // Reset Form
     setTitle('');
@@ -138,7 +174,46 @@ export default function ReviewJobsView({
     triggerToast('ประกาศงานจ้างรีวิวสำเร็จแล้วค่ะ! ข้อมูลจะปรากฏบนกระดานผู้สมัครทันที', 'success');
   };
 
-  const isBrand = currentUser?.role === 'Brand' || currentUser?.role === 'Admin';
+  const handleEditJobSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingJob) return;
+
+    if (!editTitle.trim() || !editDescription.trim() || editPlatforms.length === 0 || !editBudget.trim()) {
+      triggerToast('กรุณากรอกข้อมูลงานให้ครบถ้วนทุกช่อง และเลือกอย่างน้อย 1 แพลตฟอร์มค่ะ', 'warning');
+      return;
+    }
+
+    const updatedJob: JobItem = {
+      ...editingJob,
+      title: editTitle,
+      description: editDescription,
+      province: editProvince,
+      platforms: editPlatforms,
+      category: editCategory,
+      ageRange: editAgeRange,
+      genderRequired: editGenderRequired,
+      followerRange: editFollowerRange,
+      budget: Number(editBudget)
+    };
+
+    try {
+      await saveJobToFirestore(updatedJob);
+      setJobs(prev => prev.map(j => j.id === editingJob.id ? updatedJob : j));
+      triggerToast('แก้ไขข้อมูลโพสต์จัดจ้างเรียบร้อยแล้วค่ะ', 'success');
+      setEditingJob(null);
+    } catch (err) {
+      console.error(err);
+      setJobs(prev => prev.map(j => j.id === editingJob.id ? updatedJob : j));
+      triggerToast('แก้ไขข้อมูลเรียบร้อยค่ะ', 'success');
+      setEditingJob(null);
+    }
+  };
+
+  const toggleEditPlatform = (plat: 'Tiktok' | 'Facebook' | 'Instagram' | 'YouTube') => {
+    setEditPlatforms(prev =>
+      prev.includes(plat) ? prev.filter(p => p !== plat) : [...prev, plat]
+    );
+  };
 
   const checkHasApplied = (jobId: string) => {
     if (!currentUser) return false;
@@ -314,54 +389,6 @@ export default function ReviewJobsView({
         {/* Results layout showing job lists */}
         <div className="lg:col-span-3 space-y-6">
 
-          {/* Featured Spotlight: โพสต์รับสมัครงานล่าสุด (Job Postings Spotlight) */}
-          <div className="bg-neutral-950 p-6 rounded-3xl border border-[#D4AF37] space-y-4 shadow-xl">
-            <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-gold-400 animate-pulse" />
-              <span className="text-[10px] font-bold tracking-[0.2em] text-[#D4AF37] uppercase">PREMIUM REC: โพสต์รับสมัครงานที่โดดเด่นและล่าสุด (Recruitment Spotlight)</span>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {jobs.filter(j => j.isOpen).slice(0, 3).map((job) => {
-                const applied = checkHasApplied(job.id);
-                return (
-                  <div key={`spot-${job.id}`} className="bg-neutral-900 p-4 rounded-2xl border border-neutral-800 flex flex-col justify-between hover:border-gold-400 transition-all">
-                    <div>
-                      <div className="flex justify-between items-center text-[9px] text-[#B8860B] font-bold">
-                        <span>{job.category}</span>
-                        <span>฿{job.budget?.toLocaleString()}</span>
-                      </div>
-                      <h4 className="text-xs font-semibold text-white mt-1.5 truncate">{job.title}</h4>
-                      <p className="text-[10px] text-[#b4b4b4] line-clamp-2 mt-1 font-light leading-snug">{job.description}</p>
-                    </div>
-                    <div className="mt-3 pt-2.5 border-t border-neutral-800 flex justify-between items-center text-[10px]">
-                      <span className="text-neutral-500">@{job.brandName}</span>
-                      {applied ? (
-                        <span className="text-gold-400 font-bold">สมัครแล้ว</span>
-                      ) : (
-                        <button
-                          onClick={() => {
-                            if (!currentUser) {
-                              triggerToast('กรุณาเข้าสู่ระบบก่อนร่วมสมัครค่ะ', 'warning');
-                              setShowAuthModal('login');
-                              return;
-                            }
-                            onApplyForJob(job.id);
-                          }}
-                          className="px-2.5 py-1 bg-[#D4AF37] text-neutral-950 hover:bg-gold-500 rounded-lg font-bold text-[9px] transition-colors cursor-pointer"
-                        >
-                          สมัครด่วน
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-              {jobs.filter(j => j.isOpen).length === 0 && (
-                <p className="col-span-full text-center text-xs text-neutral-500 italic py-4">ขณะนี้ยังไม่มีรับสมัครแบบด่วนพิเศษค่ะ</p>
-              )}
-            </div>
-          </div>
-
           <div className="flex justify-between items-center text-xs text-neutral-400">
             <span>พบรายการงานจ้างทั้งหมด {filteredJobs.length} รายการ</span>
             <button
@@ -514,17 +541,19 @@ export default function ReviewJobsView({
 
                       </div>
 
-                      {currentUser?.role === 'Admin' && (
-                        <div className="pt-2 px-3 pb-2.5 bg-red-50/50 rounded-2xl border border-red-150 flex justify-between items-center gap-2 mt-4">
+                      {isAdmin && (
+                        <div className="pt-2 px-3 pb-2.5 bg-red-50/50 rounded-2xl border border-red-150 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mt-4 font-sans text-xs">
                           <span className="text-[10px] font-extrabold text-red-650 flex items-center gap-1 font-prompt">
                             <Sparkles className="w-3.5 h-3.5" />
-                            <span>สิทธิ์แอดมิน</span>
+                            <span>สิทธิ์แอดมินบริหารจัดการ</span>
                           </span>
-                          <div className="flex gap-1.5">
+                          <div className="flex flex-wrap gap-1.5 mt-1 sm:mt-0">
                             <button
                               onClick={() => {
-                                setJobs(prev => prev.map(j => j.id === job.id ? { ...j, isOpen: !j.isOpen } : j));
-                                triggerToast(`เปลี่ยนสถานะรับสมัครแคมเปญ "${job.title}" เรียบร้อยค่ะ`, 'success');
+                                const updatedJob = { ...job, isOpen: !job.isOpen };
+                                setJobs(prev => prev.map(j => j.id === job.id ? updatedJob : j));
+                                saveJobToFirestore(updatedJob);
+                                triggerToast(`เปลี่ยนสถานะแคมเปญ "${job.title}" เรียบร้อยค่ะ`, 'success');
                               }}
                               className="px-2.5 py-1 text-[9px] font-bold bg-neutral-900 border border-neutral-300 rounded-lg text-white hover:bg-neutral-800 cursor-pointer"
                             >
@@ -532,9 +561,18 @@ export default function ReviewJobsView({
                             </button>
                             <button
                               onClick={() => {
+                                setEditingJob(job);
+                              }}
+                              className="px-2.5 py-1 text-[9px] font-bold bg-amber-600 hover:bg-amber-700 rounded-lg text-white cursor-pointer"
+                            >
+                              แก้ไขข้อมูลงาน
+                            </button>
+                            <button
+                              onClick={async () => {
                                 if (window.confirm(`ยืนยันการลบแคมเปญจ้างงานด่วน "${job.title}" ออกจากระบบหรือไม่?`)) {
                                   setJobs(prev => prev.filter(j => j.id !== job.id));
-                                  triggerToast(`ลบข้อมูลโพสต์แคมเปญ เรียบร้อยค่ะ`, 'success');
+                                  await deleteJobFromFirestore(job.id);
+                                  triggerToast(`ลบข้อมูลโพสต์แคมเปญเรียบร้อยค่ะ`, 'success');
                                 }
                               }}
                               className="px-2.5 py-1 text-[9px] font-bold bg-red-600 hover:bg-red-700 rounded-lg text-white cursor-pointer"
@@ -745,6 +783,195 @@ export default function ReviewJobsView({
                   className="px-5 py-2 bg-neutral-950 hover:bg-neutral-900 border border-gold-400 text-gold-400 rounded text-xs font-bold"
                 >
                   ประกาศโพสความคืบหน้า
+                </button>
+              </div>
+
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Job Modal */}
+      {editingJob && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 overflow-y-auto">
+          <div className="bg-white w-full max-w-xl rounded-2xl shadow-2xl border border-gold-300 overflow-hidden transform animate-in fade-in-50 zoom-in-95">
+            {/* Header */}
+            <div className="bg-neutral-950 p-5 border-b border-gold-400 flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-gold-300" />
+                <h2 className="font-serif text-lg font-bold text-white tracking-widest uppercase font-prompt">แก้ไขประกาศงานรีวิวสินค้าพรีเมียม</h2>
+              </div>
+              <button
+                onClick={() => setEditingJob(null)}
+                className="p-1 px-2 hover:bg-neutral-900 text-neutral-400 hover:text-white rounded"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Form */}
+            <form onSubmit={handleEditJobSubmit} className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
+              
+              {/* Title */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-neutral-700">ชื่องานโพสต์จัดจ้าง <span className="text-red-500">*</span></label>
+                <input
+                  type="text"
+                  required
+                  value={editTitle}
+                  onChange={e => setEditTitle(e.target.value)}
+                  className="w-full px-3.5 py-2 border rounded border-neutral-200 focus:border-gold-500 focus:ring-1 focus:ring-gold-500 text-xs outline-none"
+                />
+              </div>
+
+              {/* Description */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-neutral-700">รายละเอียดแคมเปญ ขอบเขตงาน <span className="text-red-500">*</span></label>
+                <textarea
+                  rows={3}
+                  required
+                  value={editDescription}
+                  onChange={e => setEditDescription(e.target.value)}
+                  className="w-full px-3.5 py-2 border rounded border-neutral-200 focus:border-gold-500 text-xs outline-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Category Selection */}
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-bold text-neutral-700">หมวดหมู่แคมเปญ <span className="text-red-500">*</span></label>
+                  <select
+                    value={editCategory}
+                    onChange={e => setEditCategory(e.target.value)}
+                    className="w-full px-3 py-2 border rounded border-neutral-200 text-xs bg-white outline-none focus:border-gold-500"
+                  >
+                    {CATEGORIES.map(cat => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Province Selection */}
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-bold text-neutral-700">พื้นที่ปฏิบัติงาน (จังหวัด) <span className="text-red-500">*</span></label>
+                  <select
+                    value={editProvince}
+                    onChange={e => setEditProvince(e.target.value)}
+                    className="w-full px-3 py-2 border rounded border-neutral-200 text-xs bg-white outline-none focus:border-gold-500"
+                  >
+                    {THAI_PROVINCES.map(prov => (
+                      <option key={prov} value={prov}>{prov}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Age limit */}
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-bold text-neutral-700">ช่วงอายุผู้สมัคร <span className="text-red-500">*</span></label>
+                  <select
+                    value={editAgeRange}
+                    onChange={e => setEditAgeRange(e.target.value)}
+                    className="w-full px-3 py-2 border rounded border-neutral-200 text-xs bg-white outline-none focus:border-gold-500"
+                  >
+                    <option value="18-23">18-23 ปี</option>
+                    <option value="24-30">24-30 ปี</option>
+                    <option value="31-40">31-40 ปี</option>
+                    <option value="All">ไม่จำกัดอายุ</option>
+                  </select>
+                </div>
+
+                {/* Gender limit */}
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-bold text-neutral-700">เพศที่ต้องการ <span className="text-red-500">*</span></label>
+                  <select
+                    value={editGenderRequired}
+                    onChange={e => setEditGenderRequired(e.target.value as any)}
+                    className="w-full px-3 py-2 border rounded border-neutral-200 text-xs bg-white outline-none focus:border-gold-500"
+                  >
+                    <option value="All">ทุกเพศ (All)</option>
+                    <option value="Male">ชาย (Male)</option>
+                    <option value="Female">หญิง (Female)</option>
+                    <option value="LGBTQ">LGBTQ+</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Follower limit */}
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-bold text-neutral-700">ระดับอินฟลูเอนเซอร์ (ยอดผู้ติดตาม) <span className="text-red-500">*</span></label>
+                  <select
+                    value={editFollowerRange}
+                    onChange={e => setEditFollowerRange(e.target.value)}
+                    className="w-full px-3 py-2 border rounded border-neutral-200 text-xs bg-white outline-none focus:border-gold-500"
+                  >
+                    <option value="All">ทุกระดับ (ไม่จำกัดยอดผู้ติดตาม)</option>
+                    <option value="Under 10k">Nano (ผู้ติดตามต่ำกว่า 10k)</option>
+                    <option value="10k-50k">Micro (ผู้ติดตาม 10k - 50k)</option>
+                    <option value="50k-100k">Mid-Tier (ผู้ติดตาม 50k - 100k)</option>
+                    <option value="100k-500k">Macro (ผู้ติดตาม 100k - 500k)</option>
+                    <option value="500k+">Mega-Star (ผู้ติดตาม 500k ขึ้นไป)</option>
+                  </select>
+                </div>
+
+                {/* Budget input */}
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-bold text-neutral-700">งบประมานค่าจ้างแคมเปญ (บาท) <span className="text-red-500">*</span></label>
+                  <div className="relative">
+                    <span className="absolute left-3.5 top-2.5 text-xs text-neutral-400 font-bold bg-white">฿</span>
+                    <input
+                      type="number"
+                      required
+                      min={0}
+                      value={editBudget}
+                      onChange={e => setEditBudget(e.target.value)}
+                      placeholder="เช่น 15000"
+                      className="w-full pl-8 pr-3.5 py-2 border rounded border-neutral-200 focus:border-gold-500 text-xs outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Platforms */}
+              <div className="space-y-2">
+                <label className="block text-xs font-bold text-neutral-700">แพลตฟอร์มสำหรับลงงานรีวิว (อย่างน้อย 1 แพลตฟอร์ม) <span className="text-red-500">*</span></label>
+                <div className="flex flex-wrap gap-2">
+                  {PLATFORMS.map(p => {
+                    const isSel = editPlatforms.includes(p);
+                    return (
+                      <button
+                        type="button"
+                        key={p}
+                        onClick={() => toggleEditPlatform(p)}
+                        className={`px-2.5 py-1 text-[10px] rounded border transition-all cursor-pointer ${
+                          isSel
+                            ? 'bg-gold-500 text-white border-gold-500'
+                            : 'bg-white text-neutral-700 border-neutral-250 hover:bg-neutral-50'
+                        }`}
+                      >
+                        {p}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="pt-4 flex justify-end gap-2 border-t border-neutral-100">
+                <button
+                  type="button"
+                  onClick={() => setEditingJob(null)}
+                  className="px-4 py-2 border rounded text-xs text-neutral-500 hover:bg-neutral-100"
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-neutral-950 hover:bg-neutral-900 border border-gold-400 text-white rounded text-xs font-bold cursor-pointer font-prompt"
+                >
+                  บันทึกความเปลี่ยนแปลง
                 </button>
               </div>
 

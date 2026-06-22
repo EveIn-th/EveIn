@@ -8,46 +8,6 @@ interface HomeViewProps {
 }
 
 export default function HomeView({ onNavigate, onJoinUs, isLoggedIn }: HomeViewProps) {
-  const [currentSlide, setCurrentSlide] = useState(0);
-
-  const slides = [
-    {
-      id: 's1',
-      title: 'Bangkok Golden Elite Gala 2026',
-      tag: 'PRESENCE & NETWORKING EXCLUSIVE',
-      desc: 'พบกับงานราตรีสโมสรระดับประเทศที่รวมแบรนด์แถวหน้าและดาราครีเอเตอร์ท็อป 100 ดื่มด่ำค่ำคืนแชมเปญ และสร้างความร่วมมือธุรกิจระดับลักชัวรี่',
-      image: 'https://images.unsplash.com/photo-1511795409834-ef04bbd61622?q=80&w=1200&auto=format&fit=crop',
-      actionText: 'ดูตารางอิเวนต์',
-      targetTab: 'events'
-    },
-    {
-      id: 's2',
-      title: 'Phuket Riviera Yacht Sunset Drive',
-      tag: 'LIFESTYLE CAMPAIGN PROMOTION',
-      desc: 'แบรนด์ผู้พัฒนาคอนโดและเรือสำราญพรีเมียม สนับสนุนทริปครีเอทีฟถ่ายแบบและการโปรโมตเนื้อหาลักชัวรี่ไลฟ์สไตล์ช่วงพระอาทิตย์อัสดง',
-      image: 'https://images.unsplash.com/photo-1567899378494-47b22a2ae96a?q=80&w=1200&auto=format&fit=crop',
-      actionText: 'ค้นหาแคมเปญงาน',
-      targetTab: 'reviewJobs'
-    },
-    {
-      id: 's3',
-      title: 'Modern Gold Aesthetics Launching',
-      tag: 'BEAUTY CLINIC EXPOSITION',
-      desc: 'เปิดสิทธิ์ให้อินฟลูเอนเซอร์ด้านกลุ่มความงามและสกินแคร์ เข้าร่วมทดลองคอร์สบำบัดผิวหน้าทองคำ 24K ฟรี พร้อมค่าจ้างรีวิวระดับพรีเมียม',
-      image: 'https://images.unsplash.com/photo-1519671482749-fd09be7ccebf?q=80&w=1200&auto=format&fit=crop',
-      actionText: 'ดูแบรนด์ทั้งหมด',
-      targetTab: 'findInfluencers'
-    }
-  ];
-
-  // Automatic slide ticking interval
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % slides.length);
-    }, 4500);
-    return () => clearInterval(timer);
-  }, [slides.length]);
-
   return (
     <div className="space-y-16 animate-in fade-in duration-500">
       
@@ -213,72 +173,7 @@ export default function HomeView({ onNavigate, onJoinUs, isLoggedIn }: HomeViewP
         </div>
       </section>
 
-      {/* 2. Interactive Premium Events Slider */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="space-y-3 mb-6">
-          <div className="flex items-center gap-2">
-            <div className="h-[1px] w-8 bg-[#D4AF37]"></div>
-            <span className="text-[10px] font-bold tracking-[0.2em] text-[#B8860B] uppercase">HIGHLIGHT EVENTS & PROMOTIONS</span>
-          </div>
-          <h2 className="font-sans text-2xl font-semibold tracking-tight text-neutral-900">กิจกรรมเด่นและโปรโมชั่นแชร์สิทธิประโยชน์</h2>
-        </div>
 
-        {/* Outer Banner Sandbox */}
-        <div className="relative h-[250px] sm:h-[400px] rounded-3xl overflow-hidden luxury-shadow border border-[#D4AF37]/35 group">
-          {slides.map((s, idx) => (
-            <div
-              key={s.id}
-              className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${
-                idx === currentSlide ? 'opacity-100 z-10' : 'opacity-0 z-0'
-              }`}
-            >
-              {/* Background cover with dim light filter */}
-              <div className="absolute inset-0 bg-gradient-to-r from-neutral-950/95 via-neutral-950/60 to-transparent z-10"></div>
-              <img
-                src={s.image}
-                alt={s.title}
-                className="w-full h-full object-cover transform scale-100 group-hover:scale-105 transition-transform duration-[4000ms]"
-              />
-              
-              {/* Slide content overlay */}
-              <div className="absolute inset-0 z-20 flex flex-col justify-center px-6 sm:px-16 max-w-2xl space-y-3 sm:space-y-4">
-                <span className="text-[9px] sm:text-[10px] font-bold tracking-[0.2em] text-gold-300 uppercase">
-                  {s.tag}
-                </span>
-                <h3 className="font-sans text-xl sm:text-3xl font-bold text-white tracking-wide leading-snug">
-                  {s.title}
-                </h3>
-                <p className="text-[11px] sm:text-xs text-neutral-300 font-light leading-relaxed">
-                  {s.desc}
-                </p>
-                <div className="pt-2">
-                  <button
-                    onClick={() => onNavigate(s.targetTab)}
-                    className="px-6 py-2.5 rounded-full bg-black hover:bg-[#D4AF37] border border-[#D4AF37] text-white font-bold text-[9px] uppercase tracking-widest flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
-                  >
-                    <span>{s.actionText}</span>
-                    <ArrowUpRight className="w-3 h-3 text-[#D4AF37]" />
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))}
-
-          {/* Indicators dots */}
-          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-30 flex gap-2">
-            {slides.map((_, idx) => (
-              <button
-                key={idx}
-                onClick={() => setCurrentSlide(idx)}
-                className={`w-2 h-2 rounded-full transition-all ${
-                  idx === currentSlide ? 'bg-[#D4AF37] w-6' : 'bg-white/40 hover:bg-white/80'
-                }`}
-                aria-label={`หน้าสไลด์ที่ ${idx + 1}`}
-              ></button>
-            ))}
-          </div>
-        </div>
-      </section>
 
       {/* 3. Why EveIn & Stat Metrics */}
       <section className="bg-[#FCFAF7] border-y border-[#D4AF37]/10 py-20">
