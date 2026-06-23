@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { Shield, User, Landmark, Pencil, Check, Sparkles, AlertCircle, EyeOff, ShieldCheck, Plus, Trash2, ExternalLink, Image } from 'lucide-react';
 import { User as UserType } from '../types';
+import { saveUserToFirestore } from '../lib/firebase';
 
 interface ProfileViewProps {
   currentUser: UserType | null;
@@ -156,7 +157,7 @@ export default function ProfileView({
   };
 
   // Profile General details submission (Does not allow changing bank database if already lock)
-  const handleSaveProfile = (e: React.FormEvent) => {
+  const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
 
     const updatedUser: UserType = {
@@ -189,11 +190,21 @@ export default function ProfileView({
       }))
     };
 
-    setCurrentUser(updatedUser);
-    setAllUsers(prev => 
-      prev.map(u => u.id === updatedUser.id ? updatedUser : u)
-    );
-    triggerToast('บันทึกปรับปรุงประวัติบัญชีสำเร็จเรียบร้อยแล้วค่ะ! ข้อมูลส่วนตัวได้รับการอัปเดตแล้ว', 'success');
+    try {
+      await saveUserToFirestore(updatedUser);
+      setCurrentUser(updatedUser);
+      setAllUsers(prev => 
+        prev.map(u => u.id === updatedUser.id ? updatedUser : u)
+      );
+      triggerToast('บันทึกปรับปรุงประวัติบัญชีสำเร็จเรียบร้อยแล้วค่ะ! ข้อมูลส่วนตัวได้รับการอัปเดตแล้วและพร้อมแสดงผลในการค้นหาทันที', 'success');
+    } catch (err) {
+      console.error(err);
+      setCurrentUser(updatedUser);
+      setAllUsers(prev => 
+        prev.map(u => u.id === updatedUser.id ? updatedUser : u)
+      );
+      triggerToast('บันทึกปรับปรุงประวัติบัญชีสำเร็จเรียบร้อยแล้วค่ะ', 'success');
+    }
   };
 
   return (

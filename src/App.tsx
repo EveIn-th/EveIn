@@ -103,7 +103,7 @@ export default function App() {
     if (!currentUser) return;
     const dbUser = allUsers.find(u => u.id === currentUser.id);
     if (dbUser) {
-      if (
+      const hasChanges = 
         dbUser.username !== currentUser.username ||
         dbUser.realName !== currentUser.realName ||
         dbUser.role !== currentUser.role ||
@@ -113,8 +113,18 @@ export default function App() {
         dbUser.isFrozen !== currentUser.isFrozen ||
         dbUser.isBanned !== currentUser.isBanned ||
         dbUser.bankName !== currentUser.bankName ||
-        dbUser.bankAccount !== currentUser.bankAccount
-      ) {
+        dbUser.bankAccount !== currentUser.bankAccount ||
+        dbUser.avatar !== currentUser.avatar ||
+        dbUser.bio !== currentUser.bio ||
+        dbUser.age !== currentUser.age ||
+        dbUser.gender !== currentUser.gender ||
+        dbUser.email !== currentUser.email ||
+        dbUser.lineId !== currentUser.lineId ||
+        JSON.stringify(dbUser.socials || []) !== JSON.stringify(currentUser.socials || []) ||
+        JSON.stringify(dbUser.workCategories || []) !== JSON.stringify(currentUser.workCategories || []) ||
+        JSON.stringify(dbUser.productCategories || []) !== JSON.stringify(currentUser.productCategories || []);
+
+      if (hasChanges) {
         if (dbUser.isFrozen || dbUser.isBanned) {
           setCurrentUser(null);
           localStorage.removeItem('evein_current_user');

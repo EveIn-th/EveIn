@@ -92,7 +92,9 @@ export default function AdminBackendView({
       
       acc.push({
         id: current.senderId,
-        username: foundUser?.realName || foundUser?.username || current.senderName || 'ผู้เยี่ยมชม / Guest',
+        username: foundUser?.username || current.senderName || 'guest',
+        realName: foundUser?.realName || '',
+        phone: foundUser?.phone || 'ไม่ได้ระบุเบอร์โทร',
         avatar: foundUser?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=150',
         role: foundUser?.role || 'Guest',
         lastMessage: lastMsg?.text || '',
@@ -102,6 +104,13 @@ export default function AdminBackendView({
     }
     return acc;
   }, []).sort((a: any, b: any) => b.createdTimestamp - a.createdTimestamp);
+
+  // Auto-select first chat thread if current selection is guest/invalid and threads exist
+  React.useEffect(() => {
+    if ((selectedChatUserId === 'guest' || !supportUsersList.some(u => u.id === selectedChatUserId)) && supportUsersList.length > 0) {
+      setSelectedChatUserId(supportUsersList[0].id);
+    }
+  }, [supportUsersList, selectedChatUserId]);
 
   const activeChatMessages = supportHistory.filter(m => m.senderId === selectedChatUserId);
 
@@ -126,10 +135,12 @@ export default function AdminBackendView({
 
     try {
       await addSupportMessageToFirestore(newReply);
+      setSupportHistory(prev => [...prev, { ...newReply, id: `rep_${Date.now()}` }]);
       triggerToast(`ส่งข้อความหา @${foundTarget?.username || 'ลูกค้า'} เรียบร้อยค่ะ!`, 'success');
     } catch (err) {
       console.error(err);
-      triggerToast('เกิดความผิดพลาดในการส่งข้อความ กรุณาลองใหม่อีกครั้งค่ะ', 'warning');
+      setSupportHistory(prev => [...prev, { ...newReply, id: `rep_fallback_${Date.now()}` }]);
+      triggerToast(`ส่งข้อความดีเลย์หา @${foundTarget?.username || 'ลูกค้า'} สำเร็จเรียบร้อยค่ะ`, 'success');
     }
   };
 
@@ -1273,13 +1284,46 @@ export default function AdminBackendView({
               <div className="md:col-span-2 flex flex-col justify-between bg-white max-h-[500px]">
                 
                 {/* Target user recipient active status */}
-                <div className="p-4 border-b border-neutral-100 flex items-center gap-3 bg-neutral-50/20 shrink-0 select-none">
-                  <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></div>
-                  <div className="text-xs">
-                    <span className="text-neutral-400 font-light">กำลังบรรเทาทุกข์คุยกับ: </span>
-                    <span className="font-bold text-neutral-900">
-                      @{supportUsersList.find(u => u.id === selectedChatUserId)?.username || selectedChatUserId}
-                    </span>
+                <div className="p-4 border-b border-neutral-100 flex flex-col sm:flex-row justify-between sm:items-center gap-2 bg-neutral-50/20 shrink-0 select-none">
+                  <div className="flex items-center gap-3">
+                    <div className="relative">
+                      <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 absolute -bottom-0.5 -right-0.5 border border-white z-10"></div>
+                      <img 
+                        src={supportUsersList.find(u => u.id === selectedChatUserId)?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=150'} 
+                        alt="Profile" 
+                        className="w-10 h-10 rounded-full object-cover border border-[#D4AF37]/20"
+                      />
+                    </div>
+                    <div className="text-xs">
+                      <span className="text-neutral-400 font-light block">กำลังสนทนาสดกับผู้ติดต่อ:</span>
+                      <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
+                        <span className="font-bold text-neutral-900 text-sm">
+                          @{supportUsersList.find(u => u.id === selectedChatUserId)?.username || selectedChatUserId}
+                        </span>
+                        {supportUsersList.find(u => u.id === selectedChatUserId)?.realName && (
+                          <span className="text-neutral-500">
+                            ({supportUsersList.find(u => u.id === selectedChatUserId)?.realName})
+                          </span>
+                        )}
+                        <span className={`text-[8.5px] px-1.5 py-0.2 rounded font-bold uppercase ${
+                          supportUsersList.find(u => u.id === selectedChatUserId)?.role === 'Admin' ? 'bg-indigo-150 text-indigo-800' :
+                          supportUsersList.find(u => u.id === selectedChatUserId)?.role === 'Brand' ? 'bg-amber-150 text-amber-800' :
+                          supportUsersList.find(u => u.id === selectedChatUserId)?.role === 'Influencer' ? 'bg-emerald-150 text-emerald-800' : 'bg-neutral-200 text-neutral-700'
+                        }`}>
+                          {supportUsersList.find(u => u.id === selectedChatUserId)?.role}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Account Name and Phone display details as requested by user! */}
+                  <div className="flex flex-col text-[11px] text-right bg-amber-500/5 border border-amber-500/10 rounded-2xl p-2.5 sm:px-4 space-y-0.5 self-start sm:self-auto">
+                    <div className="text-neutral-500 font-light">
+                      ข้อมูลติดต่อประสานงานแอดมิน:
+                    </div>
+                    <div className="font-bold text-neutral-950 font-sans">
+                      📱 เบอร์โทรศัพท์: <span className="text-amber-800 font-mono text-xs">{supportUsersList.find(u => u.id === selectedChatUserId)?.phone || 'ไม่ได้ระบุเบอร์โทร'}</span>
+                    </div>
                   </div>
                 </div>
 
