@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Briefcase, CheckCircle2, XCircle, Clock, Link as LinkIcon, Send, Sparkles, Check, ChevronRight, AlertCircle, RefreshCw, QrCode, FileText, Upload, Plus, Trash2, Edit, MessageSquare, X, Shield } from 'lucide-react';
 import { User, JobItem, JobApplication } from '../types';
+import { saveJobToFirestore, saveApplicationToFirestore } from '../lib/firebase';
 
 interface MyJobsDashboardProps {
   currentUser: User | null;
@@ -106,19 +107,17 @@ export default function MyJobsDashboard({
       return;
     }
 
+    const updatedApp: JobApplication = {
+      ...submitWorkApp,
+      status: 'In Progress', // await brand review while remaining in progress
+      submittedLinks: submitLinks,
+      isApproved: false
+    };
+
     setApplications(prev =>
-      prev.map(app => {
-        if (app.id === submitWorkApp.id) {
-          return {
-            ...app,
-            status: 'In Progress', // await brand review while remaining in progress
-            submittedLinks: submitLinks,
-            isApproved: false
-          };
-        }
-        return app;
-      })
+      prev.map(app => (app.id === submitWorkApp.id ? updatedApp : app))
     );
+    saveApplicationToFirestore(updatedApp);
 
     triggerSystemNotification(
       'อินฟลูฯ แนบลิงก์ส่งงานแล้ว',
@@ -133,62 +132,82 @@ export default function MyJobsDashboard({
   // --- ACTIONS FOR BRAND ---
   // Toggle recruitment status (isOpen flag)
   const handleToggleJobStatus = (jobId: string) => {
+    const targetJob = jobs.find(j => j.id === jobId);
+    if (!targetJob) return;
+
+    const updatedJob: JobItem = { ...targetJob, isOpen: !targetJob.isOpen };
     setJobs(prev =>
-      prev.map(job => (job.id === jobId ? { ...job, isOpen: !job.isOpen } : job))
+      prev.map(job => (job.id === jobId ? updatedJob : job))
     );
-    const updatedJob = jobs.find(j => j.id === jobId);
-    const newState = updatedJob ? !updatedJob.isOpen : false;
+    saveJobToFirestore(updatedJob);
+
+    const newState = updatedJob.isOpen;
     triggerToast(`เปลี่ยนสถานะรับสมัครของแคมเปญงานเป็น ${newState ? 'เปิดรับสมัคร' : 'ปิดรับสมัคร'} เรียบร้อยค่ะ`, 'info');
   };
 
   // Applicant management
   const handleAcceptApplicant = (appId: string) => {
+    const targetApp = applications.find(x => x.id === appId);
+    if (!targetApp) return;
+
+    const updatedApp: JobApplication = { ...targetApp, status: 'In Progress' };
     setApplications(prev =>
-      prev.map(app => (app.id === appId ? { ...app, status: 'In Progress' } : app))
+      prev.map(app => (app.id === appId ? updatedApp : app))
     );
-    const app = applications.find(x => x.id === appId);
-    if (app) {
-      triggerSystemNotification(
-        'แบรนด์ตอบรับความร่วมมือแล้ว',
-        `ยินดีด้วยค่ะ แบรนด์ตอบรับแคมเปญงาน "${app.jobTitle}" ของท่านเรียบร้อย เริ่มผลิตงานได้ทันที!`
-      );
-    }
+    saveApplicationToFirestore(updatedApp);
+
+    triggerSystemNotification(
+      'แบรนด์ตอบรับความร่วมมือแล้ว',
+      `ยินดีด้วยค่ะ แบรนด์ตอบรับแคมเปญงาน "${targetApp.jobTitle}" ของท่านเรียบร้อย เริ่มผลิตงานได้ทันที!`
+    );
     triggerToast('ตอบรับอินฟลูเอนเซอร์เข้าร่วมงานแล้วค่ะ! งานขยับไปที่แท็บ "กำลังทำ/รอตรวจ"', 'success');
   };
 
   const handleDeclineApplicant = (appId: string) => {
+    const targetApp = applications.find(x => x.id === appId);
+    if (!targetApp) return;
+
+    const updatedApp: JobApplication = { ...targetApp, status: 'Cancelled' };
     setApplications(prev =>
-      prev.map(app => (app.id === appId ? { ...app, status: 'Cancelled' } : app))
+      prev.map(app => (app.id === appId ? updatedApp : app))
     );
+    saveApplicationToFirestore(updatedApp);
+
     triggerToast('ปฏิเสธคำสมัครแล้วค่ะ แคมเปญนี้ถูกย้ายไปช่องยกเลิก', 'info');
   };
 
   const handlePassJob = (appId: string) => {
+    const targetApp = applications.find(x => x.id === appId);
+    if (!targetApp) return;
+
+    const updatedApp: JobApplication = { ...targetApp, isApproved: true };
     setApplications(prev =>
-      prev.map(app => (app.id === appId ? { ...app, isApproved: true } : app))
+      prev.map(app => (app.id === appId ? updatedApp : app))
     );
-    const app = applications.find(x => x.id === appId);
-    if (app) {
-      triggerSystemNotification(
-        'งานผ่านตรวจแล้ว!',
-        `แบรนด์ตรวจสอบลิงก์และอนุมัติผ่านงานรีวิวสำหรับ "${app.jobTitle}" แนะนำให้ติดตามกระบวนการชำระสลิปตารางการจ่ายเงินค่ะ`
-      );
-    }
+    saveApplicationToFirestore(updatedApp);
+
+    triggerSystemNotification(
+      'งานผ่านตรวจแล้ว!',
+      `แบรนด์ตรวจสอบลิงก์และอนุมัติผ่านงานรีวิวสำหรับ "${targetApp.jobTitle}" แนะนำให้ติดตามกระบวนการชำระสลิปตารางการจ่ายเงินค่ะ`
+    );
     triggerToast('บันทึกปรับสถานะตรวจสอบงานรีวิวผ่านสำเร็จแล้วค่ะ พร้อมดำเนินการในกระบวนการจ่ายเงิน', 'success');
   };
 
   const handleSendBackModification = (appId: string) => {
+    const targetApp = applications.find(x => x.id === appId);
+    if (!targetApp) return;
+
     // Keep in progress, remove submitted links to allow re-submission
+    const updatedApp: JobApplication = { ...targetApp, submittedLinks: [], isApproved: false };
     setApplications(prev =>
-      prev.map(app => (app.id === appId ? { ...app, submittedLinks: [], isApproved: false } : app))
+      prev.map(app => (app.id === appId ? updatedApp : app))
     );
-    const app = applications.find(x => x.id === appId);
-    if (app) {
-      triggerSystemNotification(
-        'งานของท่านถูกส่งกลับแก้ไข',
-        `กรุณาตรวจสอบรายละเอียดแชท บิลงาน "${app.jobTitle}" ถูกสั่งปรับปรุงเพื่อความเหมาะสม`
-      );
-    }
+    saveApplicationToFirestore(updatedApp);
+
+    triggerSystemNotification(
+      'งานของท่านถูกส่งกลับแก้ไข',
+      `กรุณาตรวจสอบรายละเอียดแชท บิลงาน "${targetApp.jobTitle}" ถูกสั่งปรับปรุงเพื่อความเหมาะสม`
+    );
     triggerToast('ส่งกลับแก้ไขสำเร็จ อินฟลูฯ สามารถแนบส่งลิงก์ใหม่ได้ทันทีค่ะ', 'info');
   };
 
@@ -199,21 +218,19 @@ export default function MyJobsDashboard({
 
     setSubmittingSlip(true);
     setTimeout(() => {
+      const updatedApp: JobApplication = {
+        ...paymentApp,
+        status: 'Completed',
+        paymentStatus: 'Paid',
+        taxInvoiceRequested: wantTaxInvoice,
+        paymentSlipUrl: slipPreview || slipFile || 'slip_signature_receipt4050.png',
+        paymentSlipUploadedAt: new Date().toISOString()
+      };
+
       setApplications(prev =>
-        prev.map(app => {
-          if (app.id === paymentApp.id) {
-            return {
-              ...app,
-              status: 'Completed',
-              paymentStatus: 'Paid',
-              taxInvoiceRequested: wantTaxInvoice,
-              paymentSlipUrl: slipPreview || slipFile || 'slip_signature_receipt4050.png',
-              paymentSlipUploadedAt: new Date().toISOString()
-            };
-          }
-          return app;
-        })
+        prev.map(app => (app.id === paymentApp.id ? updatedApp : app))
       );
+      saveApplicationToFirestore(updatedApp);
 
       triggerSystemNotification(
         'การชำระเงินแคมเปญเสร็จสมบูรณ์',
@@ -234,6 +251,7 @@ export default function MyJobsDashboard({
     if (!editJobItem) return;
 
     setJobs(prev => prev.map(j => (j.id === editJobItem.id ? editJobItem : j)));
+    saveJobToFirestore(editJobItem);
     triggerToast('แก้ไขรายละเอียดข้อมูลแคมเปญงานเรียบร้อยแล้วค่ะ', 'success');
     setEditJobItem(null);
   };

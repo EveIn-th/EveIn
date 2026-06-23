@@ -207,6 +207,7 @@ export default function App() {
     };
 
     setApplications(prev => [newApp, ...prev]);
+    saveApplicationToFirestore(newApp);
 
     // Push system notification for brand
     const newNotif: SystemNotification = {
@@ -219,7 +220,8 @@ export default function App() {
     };
     setNotifications(prev => [newNotif, ...prev]);
 
-    triggerToast('สมัครเข้าร่วมสำเร็จแล้วค่ะ! ทางบริษัทผู้จ้างจะได้รับการแจ้งเตือนและแชทติดต่อคุณโดยด่วน', 'success');
+    triggerToast('สมัครเข้าร่วมสำเร็จแล้วค่ะ! ระบบกำลังนำทางคุณไปยังแดชบอร์ดงานของฉัน', 'success');
+    setActiveTab('dashboard');
   };
 
   return (

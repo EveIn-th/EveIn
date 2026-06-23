@@ -12,6 +12,7 @@ import {
   updateDoc,
   deleteDoc,
   where,
+  getDoc,
   getDocFromServer
 } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
@@ -132,24 +133,17 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
 export async function seedDatabaseIfEmpty() {
   return runWithFallback(async () => {
     try {
-      // 1. Seed Users
-      const usersColl = collection(db, "users");
-      let userSnap;
-      try {
-        userSnap = await getDocs(usersColl);
-      } catch (err) {
-        handleFirestoreError(err, OperationType.GET, "users");
-        return;
-      }
-
-      if (userSnap.empty) {
-        console.log("Seeding mock users to Firestore...");
-        for (const u of MOCK_USERS) {
-          try {
-            await setDoc(doc(db, "users", u.id), u);
-          } catch (err) {
-            handleFirestoreError(err, OperationType.WRITE, `users/${u.id}`);
+      // 1. Seed Users individually if missing
+      for (const u of MOCK_USERS) {
+        try {
+          const uDocRef = doc(db, "users", u.id);
+          const uSnap = await getDoc(uDocRef);
+          if (!uSnap.exists()) {
+            console.log(`Seeding mock user: ${u.username}`);
+            await setDoc(uDocRef, u);
           }
+        } catch (err) {
+          handleFirestoreError(err, OperationType.WRITE, `users/${u.id}`);
         }
       }
 
@@ -174,24 +168,17 @@ export async function seedDatabaseIfEmpty() {
         }
       }
 
-      // 3. Seed Jobs
-      const jobsColl = collection(db, "jobs");
-      let jobSnap;
-      try {
-        jobSnap = await getDocs(jobsColl);
-      } catch (err) {
-        handleFirestoreError(err, OperationType.GET, "jobs");
-        return;
-      }
-
-      if (jobSnap.empty) {
-        console.log("Seeding mock jobs to Firestore...");
-        for (const j of INITIAL_JOBS) {
-          try {
-            await setDoc(doc(db, "jobs", j.id), j);
-          } catch (err) {
-            handleFirestoreError(err, OperationType.WRITE, `jobs/${j.id}`);
+      // 3. Seed Jobs individually if missing
+      for (const j of INITIAL_JOBS) {
+        try {
+          const jDocRef = doc(db, "jobs", j.id);
+          const jSnap = await getDoc(jDocRef);
+          if (!jSnap.exists()) {
+            console.log(`Seeding mock job: ${j.title}`);
+            await setDoc(jDocRef, j);
           }
+        } catch (err) {
+          handleFirestoreError(err, OperationType.WRITE, `jobs/${j.id}`);
         }
       }
     } catch (error) {
